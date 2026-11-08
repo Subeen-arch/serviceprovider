@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}Confirm your booking - Service Provider{% endblock %}
+{% block container_class %}narrow{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <h1>Confirm your booking</h1>
+  <p>Check the details below, then send your request to the provider.</p>
+</div>
+
+<div class="card">
+  <div class="card-title">
+    <h2>{{ provider.business_name }}</h2>
+    <span class="badge badge-brand">{{ provider.service_name }}</span>
+  </div>
+
+  <table>
+    <tbody>
+      <tr>
+        <th>Provider</th>
+        <td>{{ provider.provider_name }}</td>
+      </tr>
+      <tr>
+        <th>When</th>
+        <td>
+          {{ details.scheduled_date.strftime('%A %d %B %Y') }}
+          at {{ details.scheduled_time.strftime('%H:%M') }}
+        </td>
+      </tr>
+      <tr>
+        <th>Where</th>
+        <td>{{ details.address }}</td>
+      </tr>
+      {% if route.found %}
+        <tr>
+          <th>Distance</th>
+          <td>{{ route.total_km }} km by road (shortest path)</td>
+        </tr>
+      {% endif %}
+      {% if details.note %}
+        <tr>
+          <th>Note</th>
+          <td>{{ details.note }}</td>
+        </tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h2>Estimated cost</h2>
+  <table>
+    <tbody>
+      <tr>
+        <th>Hourly rate</th>
+        <td class="num">Rs {{ '%.2f'|format(provider.hourly_rate) }}</td>
+      </tr>
+      <tr>
+        <th>Estimated hours</th>
+        <td class="num">&times; {{ details.estimated_hours }}</td>
+      </tr>
+      <tr>
+        <th class="strong">Total</th>
+        <td class="num total">
+          Rs {{ '%.2f'|format(details.amount) }}
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  {% if khalti_ready %}
+    {% include "_payment_notice.html" %}
+
+    <form method="post" action="{{ url_for('user.submit_request', provider_id=provider.id) }}">
+      {# Carried forward so the server can validate every value again. #}
+      <input type="hidden" name="latitude"        value="{{ details.latitude }}">
+      <input type="hidden" name="longitude"       value="{{ details.longitude }}">
+      <input type="hidden" name="address"         value="{{ details.address }}">
+      <input type="hidden" name="scheduled_date"  value="{{ details.scheduled_date.isoformat() }}">
+      <input type="hidden" name="scheduled_time"  value="{{ details.scheduled_time.strftime('%H:%M') }}">
+      <input type="hidden" name="estimated_hours" value="{{ details.estimated_hours }}">
+      <input type="hidden" name="note"            value="{{ details.note }}">
+
+      <button type="submit" class="btn btn-block mt-4">
+        Send service request
+      </button>
+    </form>
+
+    <p class="hint mt-3 center">
+      Nothing is charged now. You will pay Rs {{ '%.0f'|format(details.amount) }}
+      only if the provider accepts.
+    </p>
+  {% else %}
+    <div class="alert alert-error mt-4">
+      Online payment is not configured, so this booking cannot be completed.
+      Add <code>KHALTI_SECRET_KEY</code> to the .env file.
+    </div>
+  {% endif %}
+
+  <a class="btn btn-outline btn-block mt-2" href="{{ url_for('user.book', provider_id=provider.id, latitude=details.latitude, longitude=details.longitude, address=details.address) }}">
+    Change the details
+  </a>
+</div>
+{% endblock %}

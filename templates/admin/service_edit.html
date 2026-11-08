@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Edit {{ service.name }} - Admin{% endblock %}
+{% block container_class %}narrow{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <h1>Edit service</h1>
+  <p>
+    Changing the name here changes it everywhere the service is shown, including
+    on bookings that were made under the old name.
+  </p>
+</div>
+
+<div class="card">
+  <form method="post" novalidate>
+    <div class="field">
+      <label for="name">Service name</label>
+      <input type="text" id="name" name="name" value="{{ service.name }}"
+             required maxlength="60" autofocus>
+    </div>
+
+    <div class="field">
+      <label for="icon">Icon</label>
+      <input type="text" id="icon" name="icon" value="{{ service.icon }}" maxlength="10">
+      <div class="hint">A single emoji shown on the service tile.</div>
+    </div>
+
+    <div class="field">
+      <label for="description">Short description</label>
+      <input type="text" id="description" name="description"
+             value="{{ service.description }}" maxlength="255"
+             placeholder="What this service covers">
+    </div>
+
+    <div class="btn-row">
+      <button type="submit" class="btn">Save changes</button>
+      <a class="btn btn-outline" href="{{ url_for('admin.services') }}">Cancel</a>
+    </div>
+  </form>
+</div>
+
+<p class="hint">
+  Currently
+  {% if service.is_active %}
+    <span class="badge badge-completed">Visible</span> to customers.
+  {% else %}
+    <span class="badge badge-muted">Hidden</span> from customers.
+  {% endif %}
+  Use the Actions menu on the
+  <a href="{{ url_for('admin.services') }}">services page</a> to change that.
+</p>
+{% endblock %}

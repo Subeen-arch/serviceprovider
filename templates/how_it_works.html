@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}How it works - Service Provider{% endblock %}
+
+{% block content %}
+<div class="public-page-head public-page-head-wide">
+  <span class="eyebrow">How it works</span>
+  <h1>From “I need help” to a booked local provider.</h1>
+  <p>Nothing important is hidden behind a black box. Here is what happens at each step and what the application does with your answer.</p>
+</div>
+
+<div class="how-list">
+  <section class="how-row"><span class="how-number mono">Step 1</span><div><h2>Say what you need</h2><p>Choose a service category so the application knows which approved providers should be considered.</p><div class="how-tech"><strong>Behind the scenes:</strong> the active service id filters approved and available providers in MySQL.</div></div></section>
+  <section class="how-row"><span class="how-number mono">Step 2</span><div><h2>Drop your pin on the map</h2><p>Choose the job location. The address is stored together with latitude and longitude, and locations outside the Kathmandu valley are rejected.</p><div class="how-tech"><strong>Behind the scenes:</strong> Galli Maps + server-side coordinate validation.</div></div></section>
+  <section class="how-row"><span class="how-number mono">Step 3</span><div><h2>Compare ranked providers</h2><p>Providers are scored using distance, rating, price and experience. You can inspect the factor breakdown instead of trusting a hidden ranking.</p><div class="how-tech"><strong>Behind the scenes:</strong> weighted recommendation scoring over four factors.</div></div></section>
+  <section class="how-row"><span class="how-number mono">Step 4</span><div><h2>See the real road route</h2><p>Open a provider and the route from the job location to the provider is calculated through the road network rather than with a straight line.</p><div class="how-tech"><strong>Behind the scenes:</strong> Dijkstra shortest-path routing over the Kathmandu junction graph.</div></div></section>
+  <section class="how-row"><span class="how-number mono">Step 5</span><div><h2>Choose a time and send the request</h2><p>The requested date, time and duration are checked against the provider's working hours and against live bookings for the same slot.</p><div class="how-tech"><strong>Behind the scenes:</strong> provider availability rules + database double-booking protection.</div></div></section>
+  <section class="how-row"><span class="how-number mono">Step 6</span><div><h2>Pay after they accept</h2><p>The provider can accept or reject. Once accepted, the customer pays through Khalti; after completion, the customer can leave a review.</p><div class="how-tech"><strong>Behind the scenes:</strong> Khalti ePayment initiate + lookup, then booking and review status updates.</div></div></section>
+</div>
+
+<div class="public-page-actions"><a class="btn" href="{{ url_for('auth.login') }}">Start now</a></div>
+{% endblock %}

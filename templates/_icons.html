@@ -1,0 +1,33 @@
+{# ---------------------------------------------------------------------------
+   One small set of navigation icons, used by both the customer's top bar and
+   the sidebar the admin and provider get.
+
+   They are inline SVG rather than an icon font, so the project needs no extra
+   library and the icons still appear with no internet connection - which
+   matters when the project is demonstrated. Each entry is the list of shapes
+   drawn inside a 24x24 box.
+   --------------------------------------------------------------------------#}
+{% macro icon(name) -%}
+  {%- set shapes = {
+    'home':     ['M3 10.2 12 3l9 7.2', 'M5 9.5V21h14V9.5'],
+    'provider': ['M3 7h18v13H3z', 'M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2', 'M3 12h18'],
+    'users':    ['M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2', 'M9 11a4 4 0 100-8 4 4 0 000 8', 'M22 21v-2a4 4 0 00-3-3.9'],
+    'service':  ['M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.8-3.8a6 6 0 01-7.9 7.9l-6.9 6.9a2.1 2.1 0 01-3-3l6.9-6.9a6 6 0 017.9-7.9l-3.8 3.8z'],
+    'calendar': ['M3 5h18v16H3z', 'M8 3v4M16 3v4M3 10h18'],
+    'payment':  ['M2 6h20v12H2z', 'M2 10h20', 'M6 15h4'],
+    'star':     ['M12 2.6l2.9 5.9 6.5.9-4.7 4.6 1.1 6.4-5.8-3-5.8 3 1.1-6.4L2.6 9.4l6.5-.9z'],
+    'mail':     ['M3 5h18v14H3z', 'M3 6.5l9 6 9-6'],
+    'search':   ['M11 19a8 8 0 100-16 8 8 0 000 16z', 'M21 21l-4.4-4.4'],
+    'heart':    ['M20.8 5.6a5 5 0 00-7.1 0L12 7.3l-1.7-1.7a5 5 0 00-7.1 7.1l8.8 8.8 8.8-8.8a5 5 0 000-7.1z'],
+    'clock':    ['M12 22a10 10 0 110-20 10 10 0 010 20z', 'M12 7v5l3 2'],
+    'card':     ['M12 12a4 4 0 100-8 4 4 0 000 8z', 'M4 21v-1a6 6 0 016-6h4a6 6 0 016 6v1'],
+    'bell':     ['M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9', 'M13.7 21a2 2 0 01-3.4 0'],
+    'lock':     ['M5 11h14v10H5z', 'M8 11V7a4 4 0 018 0v4'],
+    'logout':   ['M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4', 'M16 17l5-5-5-5M21 12H9'],
+    'menu':     ['M4 6h16M4 12h16M4 18h16'],
+    'shield':   ['M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z', 'M9 12l2 2 4-4']
+  } -%}
+  <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+       stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
+       >{% for shape in shapes[name] %}<path d="{{ shape }}"></path>{% endfor %}</svg>
+{%- endmacro %}

@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}{{ service.name }} providers - Admin{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <h1>{{ service.icon }} {{ service.name }} providers</h1>
+  <p>
+    Only the providers whose assigned service is {{ service.name }}.
+    {% if service.description %}{{ service.description }}{% endif %}
+  </p>
+</div>
+
+<div class="filters">
+  <a href="{{ url_for('admin.services') }}">&larr; All services</a>
+  <a href="{{ url_for('admin.providers') }}">All providers</a>
+  <a href="{{ url_for('admin.edit_service', service_id=service.id) }}">Edit this service</a>
+</div>
+
+<div class="card">
+  {% if not providers %}
+    <div class="empty">
+      <strong>No providers found for {{ service.name }}.</strong>
+      <p>
+        A provider chooses their service when they sign up, so this list fills
+        up as soon as someone registers under {{ service.name }}.
+      </p>
+      <a class="btn btn-outline" href="{{ url_for('admin.providers') }}">See all providers</a>
+    </div>
+  {% else %}
+    <p class="hint">
+      {{ providers|length }} provider{{ 's' if providers|length != 1 }} offering
+      {{ service.name }}.
+    </p>
+    {# The Service column is dropped: every row on this page is the same one. #}
+    {% with show_service = false %}
+      {% include "admin/_providers_table.html" %}
+    {% endwith %}
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Request sent - Service Expert{% endblock %}
+{% block container_class %}sent-shell{% endblock %}
+{% block content %}
+<div class="sent-check">✓</div>
+<span class="eyebrow">Booking · 3 of 3</span>
+<h1>Request sent to {{ booking.business_name }}</h1>
+<p class="lead">They usually answer within a few hours during working days. We will alert you the moment they do — nothing has been charged.</p>
+<div class="sent-timeline">
+  <div class="done"><i></i><span><strong>Request delivered</strong><p>It is at the top of their dashboard with your job description.</p></span><em>Just now</em></div>
+  <div class="waiting"><i></i><span><strong>They accept or reject</strong><p>You get an alert either way. A rejection costs you nothing.</p></span><em>Usually hours</em></div>
+  <div><i></i><span><strong>You pay with Khalti</strong><p>Only once they have accepted, and before they travel.</p></span><em>After accept</em></div>
+  <div><i></i><span><strong>Job done, you review</strong><p>The provider marks it complete and you rate the work.</p></span><em>After the visit</em></div>
+</div>
+<div class="sent-actions"><a class="btn" href="{{ url_for('user.bookings') }}">See my bookings</a><a class="btn btn-outline" href="{{ url_for('user.search') }}">Book something else</a></div>
+{% endblock %}

@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}{{ service.name }} - Service Provider{% endblock %}
+
+{% block content %}
+{#- "Electricians", but "Appliance Repair providers": a name that is already an
+    activity does not take a plural s. -#}
+{% set trade_label = service.name ~ ' providers'
+     if service.name.lower().endswith('repair') else service.name ~ 's' %}
+
+<section class="svc-band">
+  <div class="svc-band-inner">
+    <a class="svc-back" href="{{ url_for('services_page') }}">&larr; All services</a>
+
+    <div class="svc-head">
+      <div>
+        <h1>{{ trade_label }} in the Kathmandu valley</h1>
+        {% if service.description %}<p>{{ service.description }}</p>{% endif %}
+      </div>
+      {% if current_user and current_user.role == 'user' %}
+        <a class="btn" href="{{ url_for('user.search', service_id=service.id) }}">Find one near me</a>
+      {% elif not current_user %}
+        <a class="btn" href="{{ url_for('auth.login') }}">Log in to find one near me</a>
+      {% endif %}
+    </div>
+
+    <div class="svc-stats">
+      <div class="svc-stat">
+        <b>{{ service.provider_count }}</b>
+        <span class="eyebrow">approved provider{{ 's' if service.provider_count != 1 }}</span>
+      </div>
+      <div class="svc-stat">
+        {% if service.min_rate is not none %}
+          {% if service.min_rate == service.max_rate %}
+            <b>Rs {{ '%.0f'|format(service.min_rate) }}</b>
+          {% else %}
+            <b>Rs {{ '%.0f'|format(service.min_rate) }}&ndash;{{ '%.0f'|format(service.max_rate) }}</b>
+          {% endif %}
+        {% else %}
+          <b>&mdash;</b>
+        {% endif %}
+        <span class="eyebrow">typical hourly rate</span>
+      </div>
+      <div class="svc-stat">
+        <b>{{ '%.1f'|format(service.avg_rating) if service.avg_rating is not none else '&mdash;'|safe }}</b>
+        <span class="eyebrow">average rating</span>
+      </div>
+      <div class="svc-stat">
+        <b>{{ service.jobs_this_year }}</b>
+        <span class="eyebrow">job{{ 's' if service.jobs_this_year != 1 }} this year</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="svc-body">
+  <div>
+    <h2>Highest rated right now</h2>
+    {% if top_providers %}
+      <div class="svc-top">
+        {% for provider in top_providers %}
+          <div class="svc-top-row">
+            <span>
+              <span class="svc-top-shop">{{ provider.business_name }}</span>
+              <span class="svc-top-addr">{{ provider.address }}</span>
+            </span>
+            <span class="svc-top-rate">Rs {{ '%.0f'|format(provider.hourly_rate) }}/hr</span>
+            <span class="svc-top-rating">
+              {%- if provider.review_count -%}
+                {{ '%.1f'|format(provider.avg_rating) }} &#9733;<span class="sr-only"> from {{ provider.review_count }} review{{ 's' if provider.review_count != 1 }}</span>
+              {%- else -%}
+                New
+              {%- endif -%}
+            </span>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty">
+        <strong>No providers in this trade yet</strong>
+        <p>Approved {{ trade_label|lower }} will appear here as soon as an administrator lists them.</p>
+      </div>
+    {% endif %}
+  </div>
+
+  <aside class="svc-aside">
+    <h3>What affects the ranking</h3>
+    <p>
+      When you search, every provider is scored out of 100 against four factors.
+      By default they count {{ weights.distance }} / {{ weights.rating }} /
+      {{ weights.price }} / {{ weights.experience }}, and you can choose which one matters most.
+    </p>
+    <div class="svc-factor">
+      <strong>Distance &middot; {{ weights.distance }}</strong>
+      <span>Road distance from their shop to your pin, found with Dijkstra's algorithm over the valley junction graph.</span>
+    </div>
+    <div class="svc-factor">
+      <strong>Rating &middot; {{ weights.rating }}</strong>
+      <span>The mean of reviews left by customers after a completed job.</span>
+    </div>
+    <div class="svc-factor">
+      <strong>Price &middot; {{ weights.price }}</strong>
+      <span>Their hourly rate against the cheapest provider shown. A rate above a budget you set scores zero.</span>
+    </div>
+    <div class="svc-factor">
+      <strong>Experience &middot; {{ weights.experience }}</strong>
+      <span>Years in the trade, as declared on the provider's profile.</span>
+    </div>
+  </aside>
+</div>
+{% endblock %}

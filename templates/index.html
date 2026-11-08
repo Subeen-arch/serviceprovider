@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% from "_service_icons.html" import service_icon %}
+{% block title %}Service Provider - trusted local services in Kathmandu{% endblock %}
+
+{% block content %}
+<div class="landing-shell">
+  <section class="landing-inner">
+    <div class="landing-hero">
+      <div>
+        <div class="eyebrow landing-kicker">Kathmandu · Lalitpur · Bhaktapur</div>
+        <h1 class="landing-title">Trades you can trust, ranked before you book.</h1>
+        <p class="landing-copy">
+          Pick the service you need and mark your location. Service Provider ranks
+          approved providers by distance, rating, price and experience, then shows
+          the road route so you can see why the first choice is first.
+        </p>
+        <div class="landing-actions">
+          <a class="btn" href="{{ url_for('auth.login') }}">Find a service</a>
+          <a class="btn btn-outline" href="{{ url_for('how_it_works') }}">See how it works</a>
+        </div>
+        <div class="landing-metrics" aria-label="Platform features">
+          <div class="landing-metric"><b>4</b><span>Ranking factors</span></div>
+          <div class="landing-metric"><b>{{ services|length }}</b><span>Service categories</span></div>
+          <div class="landing-metric"><b>1</b><span>Road route per match</span></div>
+        </div>
+      </div>
+
+      <div class="ranking-preview" aria-label="Highest rated providers">
+        <div class="ranking-preview-head">
+          <span class="eyebrow">Highest rated right now</span>
+          <span class="eyebrow">By customer rating</span>
+        </div>
+        {% for provider in preview %}
+          <div class="ranking-row{{ ' best' if loop.first }}">
+            <span class="ranking-number">{{ loop.index }}</span>
+            <span>
+              <span class="ranking-name">{{ provider.business_name }}</span>
+              <span class="ranking-meta">{{ provider.service_name }} &middot; Rs {{ '%.0f'|format(provider.hourly_rate) }}/hr &middot; {{ provider.experience_years }} yr</span>
+            </span>
+            <span>
+              {% set pct = ((provider.avg_rating or 0) / 5 * 100)|round|int %}
+              <span class="rank-track"><span style="width: {{ pct }}%"></span></span>
+              <span class="rank-score">{{ '%.1f'|format(provider.avg_rating) if provider.review_count else 'New' }}</span>
+            </span>
+          </div>
+        {% else %}
+          <div class="ranking-preview-foot">Providers appear here once customers have reviewed their work.</div>
+        {% endfor %}
+        {% if preview %}
+          <div class="ranking-preview-foot">Rated from reviews left after completed jobs. Road distance, found with Dijkstra's algorithm, joins the score once you mark your location.</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="landing-section" id="services">
+      <div class="landing-section-head">
+        <h2>Pick a trade to get started</h2>
+        <a href="{{ url_for('services_page') }}">All {{ services|length }} services &rarr;</a>
+      </div>
+      {% if services %}
+        <div class="svc-grid">
+          {% for service in services %}
+            <a class="svc-card" href="{{ url_for('service_detail', service_id=service.id) }}">
+              {{ service_icon(service.name, 24) }}
+              <span class="svc-card-text">
+                <span class="svc-card-name">{{ service.name }}</span>
+                <span class="svc-card-meta">
+                  {%- if service.provider_count -%}
+                    {{ service.provider_count }} provider{{ 's' if service.provider_count != 1 }} &middot; from Rs {{ '%.0f'|format(service.min_rate) }}/hr
+                  {%- else -%}
+                    No providers yet
+                  {%- endif -%}
+                </span>
+              </span>
+            </a>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty"><strong>No services listed yet</strong>Run <code>python setup_db.py</code> to load the sample service categories.</div>
+      {% endif %}
+    </div>
+  </section>
+
+  <section class="process-band" id="how-it-works">
+    <div class="process-inner">
+      <h2>Five steps, one decision each</h2>
+      <div class="process-grid">
+        <div class="process-step"><div class="process-step-number">01</div><strong>Choose a service</strong><p>Pick the trade that matches the job you need done.</p></div>
+        <div class="process-step"><div class="process-step-number">02</div><strong>Mark your location</strong><p>Drop your pin on the map so road distance can be calculated.</p></div>
+        <div class="process-step"><div class="process-step-number">03</div><strong>Compare providers</strong><p>See distance, rating, price, experience and the weighted score.</p></div>
+        <div class="process-step"><div class="process-step-number">04</div><strong>Book the job</strong><p>Choose a date and time that fits the provider's real working hours.</p></div>
+        <div class="process-step"><div class="process-step-number">05</div><strong>Pay and review</strong><p>Pay through Khalti after acceptance, then review the completed work.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="landing-inner" id="for-providers">
+    <div class="provider-cta">
+      <div>
+        <h2>Do the work? Get the jobs.</h2>
+        <p class="provider-cta-copy">Create a provider profile, choose your trade, set your hourly rate and working hours, then answer booking requests from your own dashboard. An administrator approves the profile before customers can find it.</p>
+        <a class="btn btn-outline" href="{{ url_for('auth.register', role='provider') }}">Join as a provider</a>
+      </div>
+      <div class="provider-perks">
+        <div class="provider-perk"><span class="provider-perk-num">01</span><span><strong>Choose your trade</strong><span>Use the same service categories customers search.</span></span></div>
+        <div class="provider-perk"><span class="provider-perk-num">02</span><span><strong>Set your rate and location</strong><span>Your real road distance becomes part of the recommendation score.</span></span></div>
+        <div class="provider-perk"><span class="provider-perk-num">03</span><span><strong>Control working hours</strong><span>Customers cannot request a slot outside your availability.</span></span></div>
+        <div class="provider-perk"><span class="provider-perk-num">04</span><span><strong>Manage jobs in one place</strong><span>Accept, reject and complete bookings from the provider dashboard.</span></span></div>
+      </div>
+    </div>
+  </section>
+</div>
+{% endblock %}

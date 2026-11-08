@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% from "_service_icons.html" import service_icon %}
+{% block title %}All services - Service Provider{% endblock %}
+
+{% block content %}
+{% set total_providers = services|sum(attribute='provider_count') %}
+
+<header class="svc-page-head">
+  <span class="eyebrow">Browse</span>
+  <h1>All services</h1>
+  <p>
+    {{ services|length }} trade{{ 's' if services|length != 1 }},
+    {{ total_providers }} approved provider{{ 's' if total_providers != 1 }} across the valley.
+    Pick one to see who works near you and what they charge.
+  </p>
+</header>
+
+{% if services %}
+  <div class="svc-list">
+    {% for service in services %}
+      <a class="svc-row" href="{{ url_for('service_detail', service_id=service.id) }}">
+        {{ service_icon(service.name, 26) }}
+        <span>
+          <span class="svc-name">{{ service.name }}</span>
+          {% if service.description %}<span class="svc-blurb">{{ service.description }}</span>{% endif %}
+        </span>
+        <span class="svc-count">
+          <b>{{ service.provider_count }}</b>
+          <span class="eyebrow">provider{{ 's' if service.provider_count != 1 }}</span>
+        </span>
+      </a>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="empty">
+    <strong>No services listed yet</strong>
+    <p>An administrator adds the trades customers can search. Run <code>python setup_db.py</code> to load the sample ones.</p>
+  </div>
+{% endif %}
+{% endblock %}

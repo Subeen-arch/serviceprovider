@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Reviews - Admin{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <h1>Customer reviews</h1>
+  <p>Every rating left after a completed job.</p>
+</div>
+
+{% include "_rating_summary.html" %}
+
+{% with endpoint = 'admin.reviews' %}
+  {% include "_review_filters.html" %}
+{% endwith %}
+
+<div class="card">
+  {% if not reviews %}
+    <div class="empty">
+      {% if active_rating %}
+        <strong>No {{ active_rating }}-star reviews found.</strong>
+        <p>Try a different rating.</p>
+        <a class="btn btn-outline" href="{{ url_for('admin.reviews', sort=active_sort) }}">
+          Show all ratings
+        </a>
+      {% else %}
+        <strong>No reviews yet</strong>
+        Customers can rate a provider once a job has been marked completed.
+      {% endif %}
+    </div>
+  {% else %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Booking</th><th>Customer</th><th>Provider</th>
+            <th>Service</th><th>Rating</th><th>Comment</th><th>Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for review in reviews %}
+            <tr class="row-link">
+              <td>
+                <a class="row-target" href="{{ url_for('admin.booking_detail', booking_id=review.booking_id) }}">
+                  #{{ review.booking_id }}
+                </a>
+              </td>
+              <td>{{ review.customer_name }}</td>
+              <td>{{ review.business_name }}</td>
+              <td>{{ review.service_name }}</td>
+              <td>
+                <span class="stars" aria-label="{{ review.rating }} out of 5">{{ '★' * review.rating }}{{ '☆' * (5 - review.rating) }}</span>
+              </td>
+              <td>{{ review.comment or '—' }}</td>
+              <td>{{ review.created_at.strftime('%d %b %Y') }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

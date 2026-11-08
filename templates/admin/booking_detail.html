@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}Booking #{{ booking.id }} - Admin{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <h1>Booking #{{ booking.id }}</h1>
+  <p>
+    <span class="badge badge-{{ booking.status }}">Booking: {{ booking.status }}</span>
+    {% if booking.payment_status %}
+      <span class="badge pay-{{ booking.payment_status }}">Payment: {{ booking.payment_status }}</span>
+    {% else %}
+      <span class="badge badge-muted">No payment record</span>
+    {% endif %}
+  </p>
+</div>
+
+<div class="grid grid-2">
+  <div class="card">
+    <h2>Job</h2>
+    <table>
+      <tbody>
+        <tr><th>Service</th><td>{{ booking.service_icon }} {{ booking.service_name }}</td></tr>
+        <tr><th>Scheduled</th>
+            <td>{{ booking.scheduled_date.strftime('%A %d %B %Y') }} at {{ booking.scheduled_time | hhmm }}</td></tr>
+        <tr><th>Estimated hours</th><td>{{ booking.estimated_hours }}</td></tr>
+        <tr><th>Address</th><td>{{ booking.address }}</td></tr>
+        <tr><th>Coordinates</th>
+            <td>{{ '%.5f'|format(booking.latitude) }}, {{ '%.5f'|format(booking.longitude) }}</td></tr>
+        <tr><th>Distance</th>
+            <td>{% if booking.distance_km is not none %}{{ booking.distance_km }} km (Dijkstra){% else %}&mdash;{% endif %}</td></tr>
+        <tr><th>Note</th><td>{{ booking.note or '—' }}</td></tr>
+        <tr><th>Requested</th><td>{{ booking.created_at.strftime('%d %b %Y, %H:%M') }}</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>People</h2>
+    <table>
+      <tbody>
+        <tr><th>Customer</th><td>{{ booking.customer_name }}<div class="hint">{{ booking.customer_phone }}</div></td></tr>
+        <tr><th>Provider</th><td>{{ booking.business_name }}<div class="hint">{{ booking.provider_name }} &middot; {{ booking.provider_phone }}</div></td></tr>
+        <tr><th>Provider base</th><td>{{ booking.provider_address }}</td></tr>
+        <tr><th>Hourly rate</th><td>Rs {{ '%.2f'|format(booking.hourly_rate) }}</td></tr>
+      </tbody>
+    </table>
+
+    <h2 class="mt-5">Payment</h2>
+    {% if booking.payment_status %}
+      <table>
+        <tbody>
+          <tr><th>Amount</th><td>Rs {{ '%.2f'|format(booking.payment_amount) }}</td></tr>
+          <tr><th>Status</th><td><span class="badge pay-{{ booking.payment_status }}">{{ booking.payment_status }}</span></td></tr>
+          <tr><th>Method</th><td>{{ booking.payment_method }}</td></tr>
+          <tr><th>Transaction</th><td>{{ booking.payment_transaction_id or '—' }}</td></tr>
+          <tr><th>Paid at</th><td>{{ booking.paid_at.strftime('%d %b %Y, %H:%M') if booking.paid_at else '—' }}</td></tr>
+          <tr><th>Refunded at</th><td>{{ booking.refunded_at.strftime('%d %b %Y, %H:%M') if booking.refunded_at else '—' }}</td></tr>
+        </tbody>
+      </table>
+    {% else %}
+      <p class="hint">No payment was recorded for this booking.</p>
+    {% endif %}
+  </div>
+</div>
+
+{% include "_booking_map.html" %}
+
+<div class="card">
+  <h2>Review</h2>
+  {% if booking.review_id %}
+    <p>
+      <span class="stars" aria-label="{{ booking.review_rating }} out of 5">{{ '★' * booking.review_rating }}{{ '☆' * (5 - booking.review_rating) }}</span>
+      {% if booking.review_comment %}&mdash; {{ booking.review_comment }}{% endif %}
+    </p>
+  {% else %}
+    <p class="hint">This booking has not been reviewed.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <a class="btn btn-outline" href="{{ url_for('admin.bookings') }}">Back to all bookings</a>
+  <a class="btn btn-outline" href="{{ url_for('admin.bookings', service_id=booking.service_id) }}">
+    Other {{ booking.service_name }} bookings
+  </a>
+</div>
+{% endblock %}

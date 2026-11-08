@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+{% block title %}My bookings - Service Provider{% endblock %}
+
+{% block content %}
+<div class="bookings-head">
+  <div class="page-head wide-head">
+    <h1>My bookings</h1>
+    <p>Everything you have requested, in one place.</p>
+  </div>
+  <a class="btn" href="{{ url_for('user.search') }}">Book a new job</a>
+</div>
+
+<nav class="booking-tabs" aria-label="Booking status">
+  <a class="{{ 'active' if not status }}" href="{{ url_for('user.bookings', q=search, sort=sort) }}">All <span>{{ total_bookings }}</span></a>
+  <a class="{{ 'active' if status == 'pending' }}" href="{{ url_for('user.bookings', status='pending', q=search, sort=sort) }}">Pending <span>{{ status_counts.pending }}</span></a>
+  <a class="{{ 'active' if status == 'accepted' }}" href="{{ url_for('user.bookings', status='accepted', q=search, sort=sort) }}">Accepted <span>{{ status_counts.accepted }}</span></a>
+  <a class="{{ 'active' if status == 'completed' }}" href="{{ url_for('user.bookings', status='completed', q=search, sort=sort) }}">Completed <span>{{ status_counts.completed }}</span></a>
+  <a class="{{ 'active' if status == 'cancelled' }}" href="{{ url_for('user.bookings', status='cancelled', q=search, sort=sort) }}">Cancelled <span>{{ status_counts.cancelled }}</span></a>
+  {% if status_counts.rejected %}
+    <a class="{{ 'active' if status == 'rejected' }}" href="{{ url_for('user.bookings', status='rejected', q=search, sort=sort) }}">Rejected <span>{{ status_counts.rejected }}</span></a>
+  {% endif %}
+</nav>
+
+{% if status_counts.pending %}
+  {% include "_payment_notice.html" %}
+{% endif %}
+
+<div class="booking-toolbar">
+  <form method="get" action="{{ url_for('user.bookings') }}">
+    {% if status %}<input type="hidden" name="status" value="{{ status }}">{% endif %}
+    <div class="booking-search">
+      <label class="sr-only" for="q">Search by provider or shop name</label>
+      <input type="search" id="q" name="q" value="{{ search }}" placeholder="Search by provider or shop name...">
+    </div>
+    <div class="booking-sort">
+      <label for="sort">Sort</label>
+      <select id="sort" name="sort" onchange="this.form.submit()">
+        {% for key, option in sorts.items() %}
+          <option value="{{ key }}" {{ 'selected' if sort == key }}>{{ option[0] }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button type="submit" class="btn btn-outline btn-sm">Search</button>
+    {% if search %}<a class="btn btn-outline btn-sm" href="{{ url_for('user.bookings', status=status, sort=sort) }}">Clear</a>{% endif %}
+  </form>
+</div>
+
+{% if not bookings %}
+  <div class="empty booking-empty">
+    {% if search %}
+      <strong>No bookings found for this search.</strong>
+      <p>Nothing matches “{{ search }}”. Try another provider or clear the search.</p>
+      <a class="btn btn-outline" href="{{ url_for('user.bookings', status=status, sort=sort) }}">Clear search</a>
+    {% elif status %}
+      <strong>No {{ status }} bookings.</strong>
+      <p>Choose another status or make a new booking.</p>
+      <a class="btn" href="{{ url_for('user.search') }}">Find a service</a>
+    {% else %}
+      <strong>You have not booked anything yet.</strong>
+      <p>Find a service provider near you to make your first booking.</p>
+      <a class="btn" href="{{ url_for('user.search') }}">Find a service</a>
+    {% endif %}
+  </div>
+{% else %}
+  <div class="booking-list">
+    {% for booking in bookings %}
+      <article class="booking-card-new">
+        <div class="booking-card-main">
+          <div class="booking-card-topline">
+            <span class="mono">#{{ booking.id }}</span>
+            <span class="badge badge-{{ booking.status }}">{{ booking.status|capitalize }}</span>
+            {% if booking.payment_status %}<span class="badge pay-{{ booking.payment_status }}">{{ booking.payment_status|capitalize }}</span>{% elif booking.status in ['pending','accepted'] %}<span class="badge badge-muted">Payment: not required yet</span>{% endif %}
+            {% if booking.provider_id in usable %}
+              <form method="post" action="{{ url_for('user.toggle_favourite', provider_id=booking.provider_id) }}" class="booking-favourite">
+                <button type="submit" class="heart {{ 'on' if booking.provider_id in favourites }}" aria-label="{{ 'Remove from favourites' if booking.provider_id in favourites else 'Add to favourites' }}">{{ '★' if booking.provider_id in favourites else '☆' }}</button>
+              </form>
+            {% endif %}
+          </div>
+
+          <h2>{{ booking.business_name }}</h2>
+          <p class="booking-job">{{ booking.service_name }}{% if booking.note %} — {{ booking.note }}{% endif %}</p>
+
+          <div class="booking-facts-grid">
+            <div><span class="eyebrow">When</span><strong><b>{{ booking.scheduled_date.strftime('%d %b %Y') }}</b> at <span class="mono">{{ booking.scheduled_time | hhmm }}</span></strong></div>
+            <div><span class="eyebrow">Where</span><strong>{{ booking.address }}</strong></div>
+            <div><span class="eyebrow">Provider phone</span><strong class="mono">{{ booking.provider_phone if booking.status in ['accepted','completed'] else 'shared once accepted' }}</strong></div>
+          </div>
+
+          <div class="booking-notice">
+            {% if booking.status == 'pending' %}
+              Waiting for {{ booking.business_name }} to answer. No payment is needed until they accept.
+            {% elif booking.status == 'accepted' and booking.payment_status != 'paid' %}
+              Accepted. Pay before the visit so the job can go ahead.
+            {% elif booking.status == 'accepted' and booking.payment_status == 'paid' %}
+              Paid and confirmed. The provider can now complete the job.
+            {% elif booking.status == 'completed' and not booking.review_id %}
+              Job completed. Your review is still missing and only takes a minute.
+            {% elif booking.review_id %}
+              You rated this {{ booking.review_rating }} star{{ 's' if booking.review_rating != 1 }}{% if booking.review_comment %}: “{{ booking.review_comment }}”{% endif %}
+            {% elif booking.status == 'cancelled' %}
+              This booking was cancelled.
+            {% elif booking.status == 'rejected' %}
+              The provider could not take this request. You were not charged.
+            {% endif %}
+          </div>
+
+          {% if booking.status == 'pending' %}
+            <details class="breakdown booking-reschedule">
+              <summary>Change the date or time</summary>
+              <form method="post" action="{{ url_for('user.reschedule_booking', booking_id=booking.id) }}">
+                <div class="grid grid-2">
+                  <div class="field">
+                    <label for="rdate-{{ booking.id }}">New date</label>
+                    <input type="date" id="rdate-{{ booking.id }}" name="scheduled_date" min="{{ today }}" value="{{ booking.scheduled_date.isoformat() }}" required>
+                  </div>
+                  <div class="field">
+                    <label for="rtime-{{ booking.id }}">New time</label>
+                    <input type="time" id="rtime-{{ booking.id }}" name="scheduled_time" min="06:00" max="20:00" value="{{ booking.scheduled_time | hhmm }}" required>
+                  </div>
+                </div>
+                <button type="submit" class="btn btn-outline btn-sm">Move this booking</button>
+              </form>
+            </details>
+          {% endif %}
+
+          {% if booking.status == 'completed' and not booking.review_id %}
+            <details class="breakdown booking-review" open>
+              <summary>Rate this service</summary>
+              <form method="post" action="{{ url_for('user.review_booking', booking_id=booking.id) }}">
+                <div class="field">
+                  <label>Your rating</label>
+                  <div class="rating-input">
+                    {% for star in range(1, 6) %}
+                      <label><input type="radio" name="rating" value="{{ star }}" required><span>{{ '★' * star }} {{ star }}</span></label>
+                    {% endfor %}
+                  </div>
+                </div>
+                <div class="field">
+                  <label for="comment-{{ booking.id }}">Comment <span class="hint optional">(optional)</span></label>
+                  <textarea id="comment-{{ booking.id }}" name="comment" maxlength="500"></textarea>
+                </div>
+                <button type="submit" class="btn btn-sm">Submit review</button>
+              </form>
+            </details>
+          {% endif %}
+        </div>
+
+        <aside class="booking-card-side">
+          <span class="eyebrow">Total</span>
+          <strong class="booking-total mono">Rs {{ '%.0f'|format(booking.hourly_rate * booking.estimated_hours) }}</strong>
+          <span class="booking-total-note mono">Rs {{ '%.0f'|format(booking.hourly_rate) }} × {{ booking.estimated_hours }} hr</span>
+
+          {% if booking.status == 'accepted' and booking.payment_status != 'paid' %}
+            <form method="post" action="{{ url_for('user.pay_booking', booking_id=booking.id) }}"><button type="submit" class="btn btn-block">Pay with Khalti</button></form>
+          {% elif booking.payment_status == 'paid' %}
+            <a class="btn btn-outline btn-block" href="{{ url_for('user.receipt', booking_id=booking.id) }}">View receipt</a>
+          {% elif booking.status in ['cancelled','rejected'] %}
+            <a class="btn btn-outline btn-block" href="{{ url_for('user.search', service_id=booking.service_id) }}">Book someone else</a>
+          {% elif booking.status == 'completed' and not booking.review_id %}
+            <a class="btn btn-block" href="#comment-{{ booking.id }}">Rate this service</a>
+          {% endif %}
+
+          {% if booking.status in ['pending','accepted'] %}
+            <form method="post" action="{{ url_for('user.cancel_booking', booking_id=booking.id) }}"
+                  data-cancel-booking="{{ booking.id }}" data-provider="{{ booking.business_name }}" data-service="{{ booking.service_name }}"
+                  onsubmit="return confirm('Cancel this booking?');">
+              <input type="hidden" name="reason" value="">
+              <button type="submit" class="booking-cancel-link">Cancel booking</button>
+            </form>
+          {% endif %}
+        </aside>
+      </article>
+    {% endfor %}
+  </div>
+{% endif %}
+
+<dialog id="cancel-dialog" class="ask">
+  <form method="dialog">
+    <h2>Cancel this booking?</h2>
+    <p class="hint" id="cancel-what">This cannot be undone.</p>
+    <fieldset class="reasons">
+      <legend>Why are you cancelling?</legend>
+      {% for reason in ['I no longer need this service','I booked the wrong date or time','I found another provider','The provider is taking too long to respond','The price is higher than I expected'] %}
+        <label class="reason"><input type="radio" name="chosen" value="{{ reason }}" required><span>{{ reason }}</span></label>
+      {% endfor %}
+      <label class="reason"><input type="radio" name="chosen" value="other" required><span>Another reason</span></label>
+    </fieldset>
+    <div class="field"><label for="cancel-note">Anything you want to add (optional)</label><input type="text" id="cancel-note" name="note" maxlength="150" placeholder="A short note for the provider"></div>
+    <div class="btn-row"><button value="cancel" class="btn btn-outline">Keep the booking</button><button value="confirm" class="btn btn-danger" id="cancel-confirm">Cancel the booking</button></div>
+  </form>
+</dialog>
+{% endblock %}
+
+{% block scripts %}<script src="{{ url_for('static', filename='js/cancel-reason.js') }}"></script>{% endblock %}

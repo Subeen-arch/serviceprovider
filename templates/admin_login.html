@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Administrator login - Service Provider{% endblock %}
+{% block container_class %}narrow{% endblock %}
+
+{% block content %}
+{% from "_icons.html" import icon %}
+
+<div class="card admin-login">
+  <div class="page-head">
+    <h1>{{ icon('shield') }} Administrator login</h1>
+    <p>
+      This entrance is for the site administrator only. A customer or service
+      provider account will not be accepted here.
+    </p>
+  </div>
+
+  <form method="post" novalidate>
+    <div class="field">
+      <label for="email">Email address</label>
+      <input type="email" id="email" name="email" value="{{ email }}" required autofocus
+             autocomplete="email">
+    </div>
+
+    <div class="field">
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password" required
+             autocomplete="current-password">
+    </div>
+
+    <button type="submit" class="btn btn-block">Log in as administrator</button>
+  </form>
+
+  <p class="mt-4 center muted">
+    Not an administrator?
+    <a href="{{ url_for('auth.login') }}">Go to the normal login page</a>
+  </p>
+</div>
+{% endblock %}

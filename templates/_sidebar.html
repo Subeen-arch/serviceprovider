@@ -1,0 +1,63 @@
+{# ---------------------------------------------------------------------------
+   Left navigation for the admin and the service provider.
+
+   The customer keeps the ordinary top bar in base.html, so this file is only
+   ever included for those two roles. The list of pages is chosen from the
+   signed-in account's role and then one loop draws it, so the sidebar markup
+   exists only once in the whole project.
+
+   Alerts, Account and Log out are deliberately NOT in here - they belong to
+   the top bar (_topbar.html), so there is never a duplicate Log out link.
+   Hiding a link is only tidiness: every page below is still protected on the
+   server by the @auth.role_required decorator on its route.
+   --------------------------------------------------------------------------#}
+{% from "_icons.html" import icon %}
+
+{# 'match' lists every endpoint that should light this item up, so a child page
+   such as /admin/bookings/12 keeps Bookings highlighted. #}
+{% if current_user.role == 'admin' %}
+  {% set role_label = 'Admin' %}
+  {% set nav_items = [
+    {'label': 'Overview',  'icon': 'home',     'endpoint': 'admin.dashboard', 'match': ['admin.dashboard']},
+    {'label': 'Providers', 'icon': 'provider', 'endpoint': 'admin.providers', 'match': ['admin.providers']},
+    {'label': 'Users',     'icon': 'users',    'endpoint': 'admin.users',     'match': ['admin.users']},
+    {'label': 'Services',  'icon': 'service',  'endpoint': 'admin.services',  'match': ['admin.services']},
+    {'label': 'Bookings',  'icon': 'calendar', 'endpoint': 'admin.bookings',  'match': ['admin.bookings', 'admin.booking_detail']},
+    {'label': 'Payments',  'icon': 'payment',  'endpoint': 'admin.payments',  'match': ['admin.payments']},
+    {'label': 'Reviews',   'icon': 'star',     'endpoint': 'admin.reviews',   'match': ['admin.reviews']},
+    {'label': 'Messages',  'icon': 'mail',     'endpoint': 'admin.messages',  'match': ['admin.messages'], 'badge': unread_messages}
+  ] %}
+{% else %}
+  {% set role_label = 'Service provider' %}
+  {% set nav_items = [
+    {'label': 'Dashboard',  'icon': 'home',     'endpoint': 'provider.dashboard',    'match': ['provider.dashboard']},
+    {'label': 'Bookings',   'icon': 'calendar', 'endpoint': 'provider.bookings',     'match': ['provider.bookings', 'provider.booking_detail']},
+    {'label': 'Reviews',    'icon': 'star',     'endpoint': 'provider.reviews',      'match': ['provider.reviews']},
+    {'label': 'Hours',      'icon': 'clock',    'endpoint': 'provider.availability', 'match': ['provider.availability']},
+    {'label': 'My profile', 'icon': 'card',     'endpoint': 'provider.profile',      'match': ['provider.profile']},
+    {'label': 'Contact',    'icon': 'mail',     'endpoint': 'contact',               'match': ['contact']}
+  ] %}
+{% endif %}
+
+<aside class="sidebar" id="sidebar">
+  <a class="sidebar-brand" href="{{ url_for('index') }}">
+    <span class="sidebar-mark" aria-hidden="true"></span>
+    <span>Service Provider</span>
+    <em class="sidebar-role">{{ role_label }}</em>
+  </a>
+
+  <ul class="sidebar-nav">
+    {% for item in nav_items %}
+      <li class="nav-item">
+        {% set on_this_page = request.endpoint in item.match %}
+        <a class="nav-link{{ ' active' if on_this_page }}"
+           href="{{ url_for(item.endpoint) }}"
+           {% if on_this_page %}aria-current="page"{% endif %}>
+          {{ icon(item.icon) }}
+          {{ item.label }}
+          {% if item.get('badge') %}<span class="nav-badge">{{ item.badge }}</span>{% endif %}
+        </a>
+      </li>
+    {% endfor %}
+  </ul>
+</aside>

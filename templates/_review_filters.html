@@ -1,0 +1,43 @@
+{# ---------------------------------------------------------------------------
+   The rating filter and the sort box, shared by the admin's review page and
+   the provider's own. Both submit as one form, so choosing a rating keeps the
+   sort and vice versa, and both survive a refresh because they are ordinary
+   query parameters.
+
+   Needs `endpoint` (where to submit), `active_rating`, `active_sort`, `sorts`.
+   --------------------------------------------------------------------------#}
+<div class="toolbar">
+  <form method="get" action="{{ url_for(endpoint) }}">
+    <div class="field-inline">
+      <label for="rating">Rating</label>
+      <select id="rating" name="rating" onchange="this.form.submit()">
+        <option value="">All ratings</option>
+        {% for star in [5, 4, 3, 2, 1] %}
+          <option value="{{ star }}" {{ 'selected' if active_rating == star }}>
+            {{ '★' * star }}{{ '☆' * (5 - star) }} {{ star }} Star
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="field-inline">
+      <label for="sort">Sort by</label>
+      <select id="sort" name="sort" onchange="this.form.submit()">
+        {% for key, option in sorts.items() %}
+          <option value="{{ key }}" {{ 'selected' if active_sort == key }}>
+            {{ option[0] }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    {# The dropdowns submit themselves, but the button keeps the form usable
+       with JavaScript switched off. #}
+    <button type="submit" class="btn btn-outline btn-sm">Apply</button>
+
+    {% if active_rating %}
+      <a class="btn btn-outline btn-sm"
+         href="{{ url_for(endpoint, sort=active_sort) }}">Clear rating</a>
+    {% endif %}
+  </form>
+</div>

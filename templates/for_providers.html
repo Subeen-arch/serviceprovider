@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}For providers - Service Provider{% endblock %}
+
+{% block content %}
+<div class="provider-public-hero">
+  <span class="eyebrow">For providers</span>
+  <h1>Your shop, on the map, in front of people nearest to it.</h1>
+  <p>Create your provider account, set your trade, rate, working hours and location, then accept or reject each booking request yourself.</p>
+</div>
+
+<div class="provider-public-grid">
+  <article><span class="mono">01</span><h2>Free to list</h2><p>Create your profile and set the hourly rate customers see.</p></article>
+  <article><span class="mono">02</span><h2>You decide</h2><p>Accept or reject each request and keep your actual working hours up to date.</p></article>
+  <article><span class="mono">03</span><h2>Paid through Khalti</h2><p>The customer pays after you accept and before the visit can be completed.</p></article>
+  <article><span class="mono">04</span><h2>Ranked by merit</h2><p>Distance, rating, price and experience influence the score rather than paid placement.</p></article>
+</div>
+
+<div class="provider-public-cta">
+  <div><h2>Ready to be listed?</h2><p>Sign up, mark your working location on the map, and wait for administrator approval before customers can find you.</p></div>
+  <a class="btn" href="{{ url_for('auth.register', role='provider') }}">Create a provider account</a>
+</div>
+{% endblock %}

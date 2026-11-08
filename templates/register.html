@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% block title %}Create an account - Service Provider{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <h1>Create an account</h1>
+  <p>Sign up as a customer looking for help, or as a provider offering a service.</p>
+</div>
+
+<form method="post" novalidate>
+  <div class="grid grid-2">
+
+    <div class="card">
+      <h2>Your details</h2>
+
+      <div class="field">
+        <label for="name">Full name</label>
+        <input type="text" id="name" name="name" value="{{ form.name or '' }}" required autocomplete="name">
+      </div>
+
+      <div class="field">
+        <label for="email">Email address</label>
+        <input type="email" id="email" name="email" value="{{ form.email or '' }}" required autocomplete="email">
+      </div>
+
+      <div class="field">
+        <label for="phone">Mobile number</label>
+        <input type="tel" id="phone" name="phone" value="{{ form.phone or '' }}" required
+               inputmode="numeric" placeholder="98XXXXXXXX">
+        <div class="hint">10 digits, starting with 9.</div>
+      </div>
+
+      <div class="field">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" required autocomplete="new-password">
+        <div class="hint">At least 8 characters, mixing letters and numbers.</div>
+      </div>
+
+      <div class="field">
+        <label for="confirm_password">Confirm password</label>
+        <input type="password" id="confirm_password" name="confirm_password" required autocomplete="new-password">
+      </div>
+
+      <fieldset class="well">
+        <legend>I am signing up as</legend>
+        <div class="check">
+          <input type="radio" id="role_user" name="role" value="user"
+                 {{ 'checked' if form.role != 'provider' }}>
+          <label for="role_user">A customer looking for services</label>
+        </div>
+        <div class="check mt-2">
+          <input type="radio" id="role_provider" name="role" value="provider"
+                 {{ 'checked' if form.role == 'provider' }}>
+          <label for="role_provider">A provider offering a service</label>
+        </div>
+      </fieldset>
+    </div>
+
+    <!-- Shown only when "provider" is selected. -->
+    <div class="card" id="provider-panel" hidden>
+      <h2>Your service</h2>
+      <p class="hint tight">
+        An administrator reviews new providers before they appear in search results.
+      </p>
+
+      <div class="field">
+        <label for="service_id">Service you provide</label>
+        <select id="service_id" name="service_id">
+          <option value="">Choose a service</option>
+          {% for service in services %}
+            <option value="{{ service.id }}" {{ 'selected' if form.service_id == service.id|string }}>
+              {{ service.name }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="business_name">Business or trading name</label>
+        <input type="text" id="business_name" name="business_name" value="{{ form.business_name or '' }}">
+      </div>
+
+      <div class="grid grid-2">
+        <div class="field">
+          <label for="hourly_rate">Hourly rate (Rs)</label>
+          <input type="number" id="hourly_rate" name="hourly_rate" min="0" step="10"
+                 value="{{ form.hourly_rate or '' }}">
+        </div>
+        <div class="field">
+          <label for="experience_years">Years of experience</label>
+          <input type="number" id="experience_years" name="experience_years" min="0" max="60"
+                 value="{{ form.experience_years or '' }}">
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="bio">About your work <span class="hint optional">(optional)</span></label>
+        <textarea id="bio" name="bio" maxlength="500">{{ form.bio or '' }}</textarea>
+      </div>
+
+      <div class="field">
+        <label for="address">Where you work from</label>
+        <input type="text" id="address" name="address" value="{{ form.address or '' }}"
+               placeholder="Click the map below to fill this in">
+      </div>
+
+      <label>Mark your location on the map</label>
+      {% if galli_token %}
+        <div id="map" class="map-box"></div>
+      {% else %}
+        <div class="map-missing">
+          The map is not configured. Add <code>GALLI_ACCESS_TOKEN</code> to your .env file.
+        </div>
+      {% endif %}
+      <div id="map-status" class="map-status">Click anywhere on the map to set your working location.</div>
+
+      <input type="hidden" id="latitude"  name="latitude"  value="{{ form.latitude or '' }}">
+      <input type="hidden" id="longitude" name="longitude" value="{{ form.longitude or '' }}">
+    </div>
+  </div>
+
+  <div class="card mt-4">
+    <button type="submit" class="btn">Create account</button>
+    <a class="btn btn-outline" href="{{ url_for('auth.login') }}">I already have an account</a>
+  </div>
+</form>
+
+<div id="pano"></div>
+{% endblock %}
+
+{% block scripts %}
+{% if galli_token %}
+  <script src="https://gallimap.com/static/dist/js/gallimaps.vector.min.latest.js"></script>
+{% endif %}
+<script src="{{ url_for('static', filename='js/galli-map.js') }}"></script>
+<script>
+  (function () {
+    var panel = document.getElementById("provider-panel");
+    var asProvider = document.getElementById("role_provider");
+    var asUser = document.getElementById("role_user");
+    var mapStarted = false;
+
+    function refresh() {
+      var showing = asProvider.checked;
+      panel.hidden = !showing;
+      // Only build the map once, and only if it is actually going to be seen.
+      if (showing && !mapStarted && document.getElementById("map")) {
+        mapStarted = true;
+        window.initLocationPicker({
+          container: "map",
+          token: {{ galli_token | tojson }},
+          center: [27.7047, 85.3140],
+          latInput: "latitude",
+          lngInput: "longitude",
+          addressInput: "address",
+          statusId: "map-status"
+        });
+      }
+    }
+
+    asProvider.addEventListener("change", refresh);
+    asUser.addEventListener("change", refresh);
+    refresh();
+  })();
+</script>
+{% endblock %}

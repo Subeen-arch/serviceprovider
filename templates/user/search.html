@@ -1,0 +1,295 @@
+{% extends "base.html" %}
+{% block title %}Find a service - Service Provider{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <h1>Find a service</h1>
+  <p>Pick what you need, mark where you are, and we will rank the providers nearby.</p>
+</div>
+
+<form method="get" action="{{ url_for('user.search') }}" novalidate>
+  <div class="grid grid-2">
+
+    <div class="card">
+      <h2>1. What do you need?</h2>
+      {% if services %}
+        <div class="service-grid" role="radiogroup" aria-label="Service category">
+          {% for service in services %}
+            <label class="service-option">
+              <input type="radio" name="service_id" value="{{ service.id }}"
+                     {{ 'checked' if selected_service and selected_service.id == service.id }}>
+              <span><em aria-hidden="true">{{ service.icon }}</em>{{ service.name }}</span>
+            </label>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty">
+          <strong>No services available</strong>
+          Ask the administrator to add a service category.
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="card">
+      <h2>2. Where are you?</h2>
+      {% if galli_token %}
+        <div id="map" class="map-box"></div>
+      {% else %}
+        <div class="map-missing">
+          The map is not configured. Add <code>GALLI_ACCESS_TOKEN</code> to your .env file.
+        </div>
+      {% endif %}
+
+      <div id="map-status" class="map-status">
+        {% if latitude %}
+          <strong>Selected:</strong> {{ address or 'your marked location' }}
+          <br><small>{{ '%.5f'|format(latitude) }}, {{ '%.5f'|format(longitude) }}</small>
+        {% else %}
+          Click anywhere on the map to drop a marker on your location.
+        {% endif %}
+      </div>
+
+      <div class="field mt-3">
+        <label for="address">Your address</label>
+        <input type="text" id="address" name="address" value="{{ address }}"
+               placeholder="Filled in when you click the map">
+      </div>
+
+      <input type="hidden" id="latitude"  name="latitude"  value="{{ latitude or '' }}">
+      <input type="hidden" id="longitude" name="longitude" value="{{ longitude or '' }}">
+      <input type="hidden" name="mode" value="{{ mode }}">
+
+      <div class="field">
+        <label for="budget">Most you want to pay per hour
+          <span class="hint optional">(optional)</span></label>
+        <input type="number" id="budget" name="budget" min="0" step="1" inputmode="numeric"
+               value="{{ '%g'|format(budget) if budget else '' }}" placeholder="No limit">
+        <div class="hint">Providers above this still appear, but score 0 for price.</div>
+      </div>
+
+
+      <button type="submit" class="btn btn-block" id="find-btn">Find providers</button>
+      <p id="search-error" class="hint form-error" role="alert" hidden></p>
+    </div>
+  </div>
+</form>
+
+{# ------------------------------- results ------------------------------- #}
+{% if searched %}
+  {# The results appear inline below the search, never in a popup.
+     tabindex="-1" lets the browser move keyboard focus here after scrolling. #}
+  <div class="card mt-5" id="results" tabindex="-1">
+    <div class="card-title">
+      <div>
+        <h2>{{ providers|length }} {{ selected_service.name }}{{ 's' if providers|length != 1 }} available</h2>
+        <p class="hint mb-0">
+          Distances are road distances found with Dijkstra's algorithm over the
+          Kathmandu valley junction network.
+        </p>
+      </div>
+
+      {% if providers %}
+        <div class="field-inline">
+          <label for="mode">Recommend by:</label>
+          <select id="mode" onchange="window.location = this.value">
+            {% for key, option in modes.items() %}
+              <option value="{{ url_for('user.search', service_id=selected_service.id, latitude=latitude, longitude=longitude, address=address, budget=budget, mode=key) }}"
+                      {{ 'selected' if mode == key }}>{{ option.label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      {% endif %}
+    </div>
+
+    {% if not providers %}
+      <div class="empty">
+        <strong>No available service providers were found near this location.</strong>
+        Every {{ selected_service.name|lower }} is either not yet approved, marked
+        unavailable, or has no road route from your location. Try another service
+        or pick a different point on the map.
+      </div>
+    {% else %}
+
+      <p class="hint mb-4">
+        <b>{{ modes[mode].label }}</b> scores out of 100 =
+        {% for factor, weight in weights.items() %}
+          {{ weight }} {{ factor }}{{ ', ' if not loop.last }}
+        {% endfor %}
+        &mdash; open &ldquo;How this score was calculated&rdquo; on any provider to see the numbers.
+      </p>
+
+      {% for provider in providers %}
+        {# Only the top scorer is the best match, whichever mode is active. #}
+        <article class="provider {{ 'top' if provider.is_best_match }}">
+          <div>
+            <h3>
+              {{ provider.business_name }}
+              {% if provider.is_best_match %}
+                <span class="badge badge-brand">Best match</span>
+              {% endif %}
+              {% if provider.is_new %}
+                <span class="badge badge-muted">New provider</span>
+              {% endif %}
+            </h3>
+            <p class="meta">{{ provider.provider_name }} &middot; {{ provider.address }}</p>
+
+            <div class="facts">
+              <span><b>{{ '%.2f'|format(provider.distance_km) }} km</b> away</span>
+              <span><b>Rs {{ '%.0f'|format(provider.hourly_rate) }}</b> / hour</span>
+              <span><b>{{ provider.experience_years }}</b> yr experience</span>
+              <span>
+                {% if provider.review_count %}
+                  <span class="stars" aria-hidden="true">{{ '★' * (provider.avg_rating|round|int) }}{{ '☆' * (5 - provider.avg_rating|round|int) }}</span>
+                  <b>{{ '%.1f'|format(provider.avg_rating) }}</b>
+                  ({{ provider.review_count }} review{{ 's' if provider.review_count != 1 }})
+                {% else %}
+                  <span class="hint inline">No reviews yet</span>
+                {% endif %}
+              </span>
+            </div>
+
+            {% if provider.bio %}<p class="meta">{{ provider.bio }}</p>{% endif %}
+
+            <details class="breakdown">
+              <summary>How this score was calculated</summary>
+              <table>
+                <thead>
+                  <tr><th>Factor</th><th>Value</th><th class="num">Points</th><th>Share</th></tr>
+                </thead>
+                <tbody>
+                  {% for row in provider.score_breakdown %}
+                    <tr>
+                      <td>{{ row.factor }}</td>
+                      <td>{{ row.value }}</td>
+                      <td class="num">{{ row.points }} / {{ row.max_points }}</td>
+                      <td>
+                        <span class="bar"><i style="width: {{ (row.points / row.max_points * 100)|round|int if row.max_points else 0 }}%"></i></span>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                  <tr>
+                    <td colspan="2"><b>Total</b></td>
+                    <td class="num"><b>{{ provider.recommendation_score }} / 100</b></td>
+                    <td></td>
+                  </tr>
+                </tbody>
+              </table>
+            </details>
+          </div>
+
+          <div class="side">
+            <div class="score">{{ provider.recommendation_score }}</div>
+            <div class="score-label">Match score</div>
+            <a class="btn btn-ok btn-sm mt-3" href="{{ url_for('user.book', provider_id=provider.id, latitude=latitude, longitude=longitude, address=address) }}">
+              View route &amp; book
+            </a>
+          </div>
+        </article>
+      {% endfor %}
+    {% endif %}
+
+    {% if unreachable %}
+      <div class="alert alert-info mt-4">
+        {{ unreachable|length }} provider{{ 's' if unreachable|length != 1 }}
+        could not be ranked because no road route was found from your location:
+        {{ unreachable | map(attribute='business_name') | join(', ') }}.
+      </div>
+    {% endif %}
+  </div>
+{% endif %}
+
+<div id="pano"></div>
+{% endblock %}
+
+{% block scripts %}
+{% if galli_token %}
+  <script src="https://gallimap.com/static/dist/js/gallimaps.vector.min.latest.js"></script>
+{% endif %}
+<script src="{{ url_for('static', filename='js/galli-map.js') }}"></script>
+<script>
+  window.initLocationPicker({
+    container: "map",
+    token: {{ galli_token | tojson }},
+    center: [{{ latitude or map_center[0] }}, {{ longitude or map_center[1] }}],
+    zoom: {{ 15 if latitude else 13 }},
+    latInput: "latitude",
+    lngInput: "longitude",
+    addressInput: "address",
+    statusId: "map-status"
+  });
+</script>
+
+<script>
+  /* Search form: block an incomplete search, show a loading state, and stop
+     the form being submitted twice while a search is already running. */
+  (function () {
+    var form = document.querySelector('form[action="{{ url_for("user.search") }}"]');
+    var button = document.getElementById("find-btn");
+    var error = document.getElementById("search-error");
+    var latInput = document.getElementById("latitude");
+    var submitting = false;
+
+    function fail(message) {
+      error.textContent = message;
+      error.hidden = false;
+    }
+
+    /* Put the button back the way it started. */
+    function reset() {
+      submitting = false;
+      button.disabled = false;
+      button.removeAttribute("aria-busy");
+      button.textContent = "Find providers";
+    }
+
+    /* Coming back with the Back button restores the page exactly as it was,
+       including a disabled "Searching..." button, so it is reset here. */
+    window.addEventListener("pageshow", reset);
+
+    form.addEventListener("submit", function (event) {
+      if (submitting) {           // already searching - ignore the second click
+        event.preventDefault();
+        return;
+      }
+      error.hidden = true;
+
+      if (!form.querySelector('input[name="service_id"]:checked')) {
+        event.preventDefault();
+        fail("Please choose the service you need.");
+        return;
+      }
+      if (!latInput.value) {
+        event.preventDefault();
+        fail("Please click your location on the map.");
+        return;
+      }
+
+      submitting = true;
+      button.setAttribute("aria-busy", "true");
+      button.textContent = "Searching…";
+
+      /* The button is disabled on the next tick, not right now. Disabling it
+         inside the submit event cancels the submission in some browsers when
+         the form was sent by pressing Enter in a field rather than clicking. */
+      window.setTimeout(function () { button.disabled = true; }, 0);
+
+      /* If the page has still not navigated, hand the button back so the
+         search can never look permanently stuck. */
+      window.setTimeout(reset, 10000);
+    });
+  })();
+
+  {% if searched %}
+  /* The results are already on the page - move down to them smoothly.
+     This only runs after a search has actually completed. */
+  (function () {
+    var results = document.getElementById("results");
+    if (!results) { return; }
+    window.requestAnimationFrame(function () {
+      results.scrollIntoView({ behavior: "smooth", block: "start" });
+      results.focus({ preventScroll: true });
+    });
+  })();
+  {% endif %}
+</script>
+{% endblock %}

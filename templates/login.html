@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Log in - Service Provider{% endblock %}
+
+{% block content %}
+<div class="auth-split">
+  <section class="auth-form-side">
+    <div class="page-head auth-head">
+      <h1>Log in</h1>
+      <p>Your bookings and favourites are where you left them.</p>
+    </div>
+
+    <form method="post" novalidate class="auth-form">
+      <div class="field">
+        <label for="email">Email address</label>
+        <input type="email" id="email" name="email" value="{{ email }}" required autofocus autocomplete="email">
+      </div>
+
+      <div class="field">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" required autocomplete="current-password">
+      </div>
+
+      <div class="auth-form-row">
+        <span class="hint">Use your registered account password.</span>
+        <a href="{{ url_for('auth.forgot_password') }}">Forgot password?</a>
+      </div>
+
+      <button type="submit" class="btn btn-block">Log in</button>
+    </form>
+
+    <div class="auth-bottom-links">
+      <p>No account yet? <a href="{{ url_for('auth.register') }}">Create one</a></p>
+      <p><a href="{{ url_for('auth.admin_login') }}">Log in as administrator →</a></p>
+    </div>
+  </section>
+
+  <aside class="demo-accounts" aria-label="Demo accounts">
+    <div class="eyebrow">Demo accounts</div>
+    <div class="demo-account-row">
+      <span class="eyebrow">Customer</span>
+      <span class="mono">aarati@example.com</span>
+    </div>
+    <div class="demo-account-row">
+      <span class="eyebrow">Provider</span>
+      <span class="mono">ramesh.s@example.com</span>
+    </div>
+    <div class="demo-account-row">
+      <span class="eyebrow">Admin</span>
+      <span class="mono">admin@serviceexpert.local</span>
+    </div>
+    <p class="hint demo-password">All demo accounts use the password configured in <code>SEED_PASSWORD</code>.</p>
+  </aside>
+</div>
+{% endblock %}

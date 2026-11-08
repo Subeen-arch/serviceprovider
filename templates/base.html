@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Service Provider{% endblock %}</title>
+  <link rel="preload" as="font" type="font/woff2" crossorigin
+        href="{{ url_for('static', filename='fonts/archivo-latin.woff2') }}">
+  <link rel="preload" as="font" type="font/woff2" crossorigin
+        href="{{ url_for('static', filename='fonts/plex-mono-400.woff2') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  {% if current_user and current_user.role == 'admin' %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+  {% endif %}
+  {% block head %}{% endblock %}
+</head>
+
+{% from "_icons.html" import icon %}
+{% set uses_sidebar = current_user and current_user.role in ['admin', 'provider'] %}
+
+<body class="{{ 'admin' if current_user and current_user.role == 'admin' }} {{ 'has-sidebar' if uses_sidebar }}">
+
+{% if uses_sidebar %}
+  {% include "_sidebar.html" %}
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+{% endif %}
+
+<div class="app-main">
+
+  {% if uses_sidebar %}
+    {% include "_topbar.html" %}
+  {% else %}
+    <header class="nav">
+      <nav class="nav-inner" aria-label="Main">
+        <a class="brand" href="{{ url_for('index') }}">
+          <span class="brand-mark" aria-hidden="true"></span>
+          <span class="brand-name">Service Provider</span>
+        </a>
+
+        {% if current_user %}
+          <div class="nav-links nav-main">
+            <a href="{{ url_for('user.search') }}" class="{{ 'active' if request.endpoint == 'user.search' }}">{{ icon('search') }} Find a service</a>
+            <a href="{{ url_for('user.bookings') }}" class="{{ 'active' if request.endpoint == 'user.bookings' }}">{{ icon('calendar') }} My bookings</a>
+            <a href="{{ url_for('contact') }}" class="{{ 'active' if request.endpoint == 'contact' }}">{{ icon('mail') }} Contact</a>
+            <a href="{{ url_for('user.favourites') }}" class="{{ 'active' if request.endpoint == 'user.favourites' }}">{{ icon('heart') }} Favourites</a>
+          </div>
+
+          <div class="nav-actions">
+            <a class="top-icon{{ ' is-current' if request.endpoint == 'user.notifications' }}"
+               href="{{ url_for('user.notifications') }}"
+               title="Alerts"
+               aria-label="Alerts{{ ', %d unread'|format(unread_notifications) if unread_notifications }}">
+              {{ icon('bell') }}
+              {% if unread_notifications %}<span class="icon-badge">{{ unread_notifications }}</span>{% endif %}
+            </a>
+
+            <details class="menu account-dropdown">
+              <summary class="top-icon" id="accountButton" title="Account" aria-label="Account">
+                <span class="account-avatar" aria-hidden="true">{{ current_user.name[:1]|upper }}</span>
+              </summary>
+              <div class="account-menu" id="accountMenu">
+                <div class="account-who">
+                  <b>{{ current_user.name }}</b>
+                  <span>{{ current_user.email }}</span>
+                </div>
+                <a href="{{ url_for('user.profile') }}">{{ icon('card') }} Manage account</a>
+                <div class="account-sep"></div>
+                <form method="post" action="{{ url_for('auth.logout') }}">
+                  <button type="submit" class="account-logout">{{ icon('logout') }} Logout</button>
+                </form>
+              </div>
+            </details>
+          </div>
+        {% else %}
+          <div class="nav-links nav-main">
+            <a href="{{ url_for('services_page') }}">Services</a>
+            <a href="{{ url_for('how_it_works') }}">How it works</a>
+            <a href="{{ url_for('for_providers') }}">For providers</a>
+            <a href="{{ url_for('contact') }}" class="{{ 'active' if request.endpoint == 'contact' }}">Contact</a>
+          </div>
+          <div class="nav-actions">
+            <a class="btn btn-outline btn-sm" href="{{ url_for('auth.login') }}">Log in</a>
+            <a class="btn btn-sm" href="{{ url_for('auth.register') }}">Sign up</a>
+          </div>
+        {% endif %}
+      </nav>
+    </header>
+  {% endif %}
+
+  <main class="page">
+    <div class="container {% block container_class %}{% endblock %}">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="alerts" role="alert">
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category if category in ['success','error','info'] else 'info' }}">{{ message }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+
+  {% if not uses_sidebar %}
+    <footer class="footer">
+      <div class="container footer-inner">
+        <div class="footer-left"><strong>Service Provider</strong><span>Kathmandu valley</span></div>
+        <nav class="footer-links" aria-label="Footer">
+          <a href="{{ url_for('how_it_works') }}">How it works</a>
+          <a href="{{ url_for('for_providers') }}">For providers</a>
+          <a href="{{ url_for('contact') }}">Contact</a>
+          <a href="{{ url_for('auth.admin_login') }}">Staff</a>
+        </nav>
+      </div>
+    </footer>
+  {% endif %}
+</div>
+
+<script src="{{ url_for('static', filename='js/nav.js') }}"></script>
+<script src="{{ url_for('static', filename='js/password-toggle.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Payments - Admin{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <h1>Payments</h1>
+  <p>Money taken through Khalti, and refunds recorded against rejected or cancelled bookings.</p>
+</div>
+
+<div class="grid grid-4">
+  {% for row in totals %}
+    <div class="stat">
+      <b>Rs {{ '%.0f'|format(row.total) }}</b>
+      <span>{{ row.count }} {{ row.status }}</span>
+    </div>
+  {% endfor %}
+</div>
+
+<div class="filters mt-4">
+  {% for status in statuses %}
+    <a href="{{ url_for('admin.payments', status=status) }}"
+       class="{{ 'active' if active_status == status }}">{{ status|capitalize }}</a>
+  {% endfor %}
+</div>
+
+<div class="card">
+  {% if not payments %}
+    <div class="empty">
+      <strong>No {{ active_status }} payments</strong>
+      Payments appear here as customers pay for their bookings.
+    </div>
+  {% else %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Booking</th><th>Customer</th><th>Provider</th><th>Service</th>
+            <th class="num">Amount</th><th>Method</th><th>Transaction</th>
+            <th>Payment</th><th>Booking status</th><th>When</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for payment in payments %}
+            <tr class="row-link">
+              <td>
+                <a class="row-target" href="{{ url_for('admin.booking_detail', booking_id=payment.booking_id) }}">
+                  #{{ payment.booking_id }}
+                </a>
+              </td>
+              <td>{{ payment.customer_name }}</td>
+              <td>{{ payment.business_name }}</td>
+              <td>{{ payment.service_name }}</td>
+              <td class="num">Rs {{ '%.2f'|format(payment.amount) }}</td>
+              <td>{{ payment.payment_method }}</td>
+              <td>{{ payment.transaction_id or '—' }}</td>
+              <td><span class="badge pay-{{ payment.status }}">{{ payment.status }}</span></td>
+              <td><span class="badge badge-{{ payment.booking_status }}">{{ payment.booking_status }}</span></td>
+              <td>
+                {% if payment.paid_at %}
+                  {{ payment.paid_at.strftime('%d %b %Y') }}
+                  <div class="hint">paid</div>
+                {% elif payment.refunded_at %}
+                  {{ payment.refunded_at.strftime('%d %b %Y') }}
+                  <div class="hint">refunded</div>
+                {% else %}
+                  {{ payment.created_at.strftime('%d %b %Y') }}
+                  <div class="hint">created</div>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

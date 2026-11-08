@@ -1,0 +1,290 @@
+{% extends "base.html" %}
+{% block title %}Book {{ provider.business_name }} - Service Provider{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <h1>{{ provider.business_name }}</h1>
+  <p>{{ provider.service_icon }} {{ provider.service_name }} &middot;
+     {{ provider.provider_name }} &middot; {{ provider.address }}</p>
+</div>
+
+<div class="grid grid-2">
+
+  {# ------------------------- route from Dijkstra ------------------------- #}
+  <div class="card">
+    <h2>Shortest route</h2>
+
+    {% if route.found %}
+      <p class="hint tight">
+        Calculated with Dijkstra's algorithm over the valley junction network.
+      </p>
+
+      {% if galli_token %}
+        <div id="route-map" class="map-box tall"></div>
+      {% else %}
+        <div class="map-missing">
+          The map is not configured, but the route below was still calculated.
+        </div>
+      {% endif %}
+
+      {# Filled in by the routing engine once the map has loaded. #}
+      <div id="route-status" class="map-status">Finding the road route&hellip;</div>
+
+      <details class="breakdown mt-3">
+        <summary>How this provider was ranked (Dijkstra)</summary>
+        <p class="mt-2 mb-0">
+          Every provider is ranked using Dijkstra's algorithm over the valley
+          junction network, which gives a shortest path of
+          <strong>{{ route.total_km }} km</strong>
+          ({{ route.access_km }} km to the nearest junction,
+          {{ route.road_km }} km across {{ route.junction_count }}
+          junction{{ 's' if route.junction_count != 1 }},
+          {{ route.exit_km }} km to the provider):
+        </p>
+        <p class="mt-2 mb-0">
+          {{ route.junctions | join(' → ') }}
+        </p>
+        <p class="hint mt-2 mb-0">
+          The line drawn on the map above is the real road route for this one
+          provider. The figure here is the graph distance used to rank every
+          provider at once, so the two numbers will differ slightly.
+        </p>
+      </details>
+    {% else %}
+      <div class="empty">
+        <strong>No route found</strong>
+        {{ route.message }} You can still send a booking request, but no distance
+        will be recorded.
+      </div>
+    {% endif %}
+  </div>
+
+  {# ------------------------------ booking ------------------------------- #}
+  <div class="card">
+    <h2>Book this provider</h2>
+
+    <div class="facts mb-4">
+      <span><b>Rs {{ '%.0f'|format(provider.hourly_rate) }}</b> / hour</span>
+      <span><b>{{ provider.experience_years }}</b> yr experience</span>
+      <span>
+        {% if provider.review_count %}
+          <span class="stars" aria-hidden="true">{{ '★' * (provider.avg_rating|round|int) }}</span>
+          <b>{{ '%.1f'|format(provider.avg_rating) }}</b> ({{ provider.review_count }})
+        {% else %}
+          <span class="badge badge-muted">New provider</span>
+        {% endif %}
+      </span>
+    </div>
+
+    <form method="post" novalidate>
+      <input type="hidden" name="latitude"  value="{{ latitude }}">
+      <input type="hidden" name="longitude" value="{{ longitude }}">
+
+      <div class="field">
+        <label for="address">Job address</label>
+        <input type="text" id="address" name="address" value="{{ address }}" required maxlength="200">
+        <div class="hint">This is the location you marked on the map.</div>
+      </div>
+
+      <div class="map-status">
+        <strong>When this provider works</strong>
+        <div class="hours-list">
+          {% for w in windows %}
+            <div><b>{{ w.name }}</b><span>{{ w.label }}</span></div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <p id="hours-error" class="alert alert-error mt-3" role="alert" hidden></p>
+
+      <div class="grid grid-2">
+        <div class="field">
+          <label for="scheduled_date">Date</label>
+          <input type="date" id="scheduled_date" name="scheduled_date" required
+                 min="{{ today }}" value="{{ form.scheduled_date or '' }}">
+        </div>
+        <div class="field">
+          <label for="scheduled_time">Time</label>
+          <input type="time" id="scheduled_time" name="scheduled_time" required
+                 min="06:00" max="20:00" value="{{ form.scheduled_time or '' }}">
+          <div class="hint">Between 06:00 and 20:00.</div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="estimated_hours">How long will the job take?</label>
+        <select id="estimated_hours" name="estimated_hours" required>
+          {% for hours in [1, 2, 3, 4, 5, 6, 7, 8] %}
+            <option value="{{ hours }}"
+                    {{ 'selected' if (form.estimated_hours or '1') == hours|string }}>
+              {{ hours }} hour{{ 's' if hours != 1 }}
+            </option>
+          {% endfor %}
+        </select>
+        <div class="hint">
+          Charged at Rs {{ '%.0f'|format(provider.hourly_rate) }} per hour.
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="note">What needs doing? <span class="hint optional">(optional)</span></label>
+        <textarea id="note" name="note" maxlength="500"
+                  placeholder="Describe the problem so the provider knows what to bring.">{{ form.note or '' }}</textarea>
+      </div>
+
+      <div class="map-status row between">
+        <span>Estimated total</span>
+        <strong id="total-preview" class="big">
+          Rs {{ '%.0f'|format(provider.hourly_rate) }}
+        </strong>
+      </div>
+
+      {% include "_payment_notice.html" %}
+
+      <button type="submit" class="btn btn-block mt-3">
+        Continue to review your request
+      </button>
+      <a class="btn btn-outline btn-block mt-2" href="{{ url_for('user.search', service_id=provider.service_id, latitude=latitude, longitude=longitude, address=address) }}">
+        Back to results
+      </a>
+    </form>
+  </div>
+</div>
+
+{# ------------------------------- reviews -------------------------------- #}
+<div class="card mt-4">
+  <h2>Recent reviews</h2>
+  {% if reviews %}
+    {% for review in reviews %}
+      <div class="review">
+        <div class="who">
+          {{ review.customer_name }}
+          <span class="stars" aria-label="{{ review.rating }} out of 5">{{ '★' * review.rating }}{{ '☆' * (5 - review.rating) }}</span>
+        </div>
+        <div class="when">{{ review.service_name }} &middot; {{ review.created_at.strftime('%d %b %Y') }}</div>
+        {% if review.comment %}<p class="mt-2 mb-0">{{ review.comment }}</p>{% endif %}
+      </div>
+    {% endfor %}
+  {% else %}
+    <div class="empty">
+      <strong>No reviews yet</strong>
+      This provider has not been rated. Their score uses a neutral 3.0 rating instead.
+    </div>
+  {% endif %}
+</div>
+
+<div id="pano"></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  /* Working-hours check in the browser, purely for quick feedback. The server
+     runs exactly the same three checks again before creating the booking, so
+     editing this page cannot get a booking past the rules. */
+  (function () {
+    var windows = {{ windows | tojson }};
+    var byDay = {};
+    windows.forEach(function (w) { byDay[w.weekday] = w; });
+
+    var dateEl  = document.getElementById("scheduled_date");
+    var timeEl  = document.getElementById("scheduled_time");
+    var hoursEl = document.getElementById("estimated_hours");
+    var errorEl = document.getElementById("hours-error");
+    var form    = dateEl.form;
+
+    function clock(mins) {
+      var h = Math.floor(mins / 60), m = mins % 60;
+      var suffix = h < 12 ? "AM" : "PM";
+      var shown = (h % 12) || 12;
+      return ("0" + shown).slice(-2) + ":" + ("0" + m).slice(-2) + " " + suffix;
+    }
+
+    function allDays() {
+      return windows.map(function (w) { return w.name + " " + w.label; }).join("; ");
+    }
+
+    /* Returns a message when the chosen slot does not fit, otherwise null. */
+    function problem() {
+      if (!dateEl.value || !timeEl.value) { return null; }
+
+      /* Parsed as local parts so the browser's timezone cannot shift the day. */
+      var parts = dateEl.value.split("-");
+      var chosen = new Date(+parts[0], +parts[1] - 1, +parts[2]);
+      var weekday = (chosen.getDay() + 6) % 7;      // JS Sunday=0 -> Monday=0
+      var dayName = ["Monday","Tuesday","Wednesday","Thursday","Friday",
+                     "Saturday","Sunday"][weekday];
+
+      var w = byDay[weekday];
+      if (!w) {
+        return "This service provider is not available on " + dayName +
+               ". They are available on: " + allDays() + ".";
+      }
+
+      var hm = timeEl.value.split(":");
+      var begins = (+hm[0]) * 60 + (+hm[1]);
+      var hours = parseInt(hoursEl.value, 10) || 0;
+      var finishes = begins + hours * 60;
+
+      if (begins < w.start || begins > w.end) {
+        return "This service provider works on " + dayName + " from " +
+               clock(w.start) + " to " + clock(w.end) +
+               ". Please choose a time within their working hours.";
+      }
+      if (finishes > w.end) {
+        return "A " + hours + " hour job starting at " + clock(begins) +
+               " would finish at " + clock(finishes) + ", but this provider " +
+               "stops at " + clock(w.end) + " on " + dayName +
+               ". Choose an earlier time or a shorter job.";
+      }
+      return null;
+    }
+
+    function review() {
+      var message = problem();
+      errorEl.textContent = message || "";
+      errorEl.hidden = !message;
+      return !message;
+    }
+
+    [dateEl, timeEl, hoursEl].forEach(function (el) {
+      el.addEventListener("change", review);
+    });
+    form.addEventListener("submit", function (event) {
+      if (!review()) {
+        event.preventDefault();
+        errorEl.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    });
+  })();
+
+  /* Live total on the form. The amount actually charged is always worked out
+     again on the server - this is only so the customer can see it change. */
+  (function () {
+    var rate = {{ provider.hourly_rate | float }};
+    var hours = document.getElementById("estimated_hours");
+    var total = document.getElementById("total-preview");
+    function update() {
+      total.textContent = "Rs " + (rate * parseInt(hours.value, 10)).toFixed(0);
+    }
+    hours.addEventListener("change", update);
+    update();
+  })();
+</script>
+{% if route.found and galli_token %}
+  <script src="https://gallimap.com/static/dist/js/gallimaps.vector.min.latest.js"></script>
+  <script src="{{ url_for('static', filename='js/galli-map.js') }}"></script>
+  <script>
+    window.initRouteMap({
+      container: "route-map",
+      token: {{ galli_token | tojson }},
+      statusId: "route-status",
+      /* Only the two ends are needed - the road geometry between them comes
+         from the routing engine, not from these coordinates. */
+      points: [
+        { lat: {{ latitude }},           lng: {{ longitude }} },
+        { lat: {{ provider.latitude }},  lng: {{ provider.longitude }} }
+      ]
+    });
+  </script>
+{% endif %}
+{% endblock %}

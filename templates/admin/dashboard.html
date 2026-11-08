@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Platform overview - Service Provider{% endblock %}
+
+{% block content %}
+<div class="staff-page-head">
+  <div>
+    <h1>Platform overview</h1>
+    <p>{{ counts.pending_approval }} provider{{ 's' if counts.pending_approval != 1 }} waiting for approval. Live figures are read from the database.</p>
+  </div>
+  <a class="btn" href="{{ url_for('admin.providers', status='pending') }}">Review pending providers</a>
+</div>
+
+{# Seven real links are kept because each figure is a shortcut into the table behind it. #}
+<div class="admin-overview-stats">
+  <a class="stat" href="{{ url_for('admin.users', role='user') }}"><span class="eyebrow">Customers</span><b>{{ counts.customers }}</b><small>registered accounts</small></a>
+  <a class="stat" href="{{ url_for('admin.providers') }}"><span class="eyebrow">Provider accounts</span><b>{{ counts.providers }}</b><small>all provider users</small></a>
+  <a class="stat" href="{{ url_for('admin.services') }}"><span class="eyebrow">Active services</span><b>{{ counts.services }}</b><small>visible categories</small></a>
+  <a class="stat" href="{{ url_for('admin.bookings') }}"><span class="eyebrow">Total bookings</span><b>{{ counts.bookings }}</b><small>all time</small></a>
+  <a class="stat" href="{{ url_for('admin.reviews') }}"><span class="eyebrow">Reviews submitted</span><b>{{ counts.reviews }}</b><small>customer reviews</small></a>
+  <a class="stat" href="{{ url_for('admin.payments', status='paid') }}"><span class="eyebrow">Collected from Khalti</span><b>Rs {{ '%.0f'|format(counts.paid_total) }}</b><small>{{ counts.paid_count }} paid booking{{ 's' if counts.paid_count != 1 }}</small></a>
+  <a class="stat" href="{{ url_for('admin.providers', status='pending') }}"><span class="eyebrow">Waiting for approval</span><b>{{ counts.pending_approval }}</b><small>need a decision</small></a>
+</div>
+
+<div class="staff-overview-grid">
+  <section>
+    <div class="section-title-row"><h2>Latest bookings</h2><a href="{{ url_for('admin.bookings') }}">View all →</a></div>
+    <div class="staff-table-panel">
+      {% if recent %}
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>#</th><th>Service</th><th>Customer</th><th>Provider</th><th>When</th><th>Status</th></tr></thead>
+            <tbody>
+              {% for booking in recent %}
+                <tr class="row-link">
+                  <td><a class="row-target" href="{{ url_for('admin.booking_detail', booking_id=booking.id) }}">#{{ booking.id }}</a></td>
+                  <td>{{ booking.service_name }}</td><td>{{ booking.customer_name }}</td><td>{{ booking.business_name }}</td>
+                  <td>{{ booking.scheduled_date.strftime('%d %b') }} {{ booking.scheduled_time | hhmm }}</td>
+                  <td><span class="badge badge-{{ booking.status }}">{{ booking.status }}</span></td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}<div class="empty"><strong>No bookings yet</strong>Bookings will appear here when customers request work.</div>{% endif %}
+    </div>
+  </section>
+
+  <aside>
+    <div class="section-title-row"><h2>Bookings by status</h2></div>
+    <div class="admin-status-list status-strip">
+      {% for status, total in status_counts.items() %}
+        <a class="s-{{ status }}" href="{{ url_for('admin.bookings', status=status) }}"><span class="badge badge-{{ status }}">{{ status }}</span><strong class="mono">{{ total }}</strong></a>
+      {% endfor %}
+    </div>
+
+    <div class="section-title-row admin-popular-title"><h2>Most booked services</h2></div>
+    <div class="admin-popular-list">
+      {% if popular %}
+        {% for service in popular %}
+          <a href="{{ url_for('admin.bookings', service_id=service.id) }}"><span>{{ service.icon }} {{ service.name }}</span><strong class="mono">{{ service.total }}</strong></a>
+        {% endfor %}
+      {% else %}<div class="empty"><strong>No service data yet</strong></div>{% endif %}
+    </div>
+  </aside>
+</div>
+{% endblock %}

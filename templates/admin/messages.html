@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Messages - Admin{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <h1>Messages</h1>
+  <p>Sent through the Contact page. Unread ones are listed first.</p>
+</div>
+
+<div class="grid grid-2">
+  <div class="stat"><b>{{ counts.total }}</b><span>Messages received</span></div>
+  <div class="stat"><b>{{ counts.unread }}</b><span>Still unread</span></div>
+</div>
+
+<div class="filters mt-4">
+  <a href="{{ url_for('admin.messages') }}"
+     class="{{ 'active' if not unread_only }}">All</a>
+  <a href="{{ url_for('admin.messages', filter='unread') }}"
+     class="{{ 'active' if unread_only }}">Unread ({{ counts.unread }})</a>
+</div>
+
+{% if not messages %}
+  <div class="empty">
+    <strong>{{ 'No unread messages' if unread_only else 'No messages yet' }}</strong>
+    {% if unread_only %}
+      <a href="{{ url_for('admin.messages') }}">Show all messages</a>
+    {% else %}
+      Anything sent through the Contact page will appear here.
+    {% endif %}
+  </div>
+{% else %}
+  {% for message in messages %}
+    <div class="card">
+      <div class="card-title">
+        <div>
+          <h2>{{ message.subject or 'No subject' }}</h2>
+          <p class="hint mb-0">
+            From <b>{{ message.name }}</b>
+            &lt;<a href="mailto:{{ message.email }}">{{ message.email }}</a>&gt;
+            &middot; {{ message.created_at.strftime('%d %b %Y, %H:%M') }}
+          </p>
+        </div>
+        <div class="badges">
+          {% if message.is_read %}
+            <span class="badge badge-muted">Read</span>
+          {% else %}
+            <span class="badge badge-brand">New</span>
+          {% endif %}
+          {% if message.account_id %}
+            <span class="badge badge-completed">{{ message.account_role }} account</span>
+          {% else %}
+            <span class="badge badge-muted">Not signed in</span>
+          {% endif %}
+        </div>
+      </div>
+
+      {# Whitespace preserved so a message written in paragraphs still reads
+         as paragraphs. The value is escaped by Jinja, so markup in it is
+         shown as text rather than rendered. #}
+      <p class="prewrap mt-1 mb-4">{{ message.body }}</p>
+
+      <div class="btn-row">
+        <a class="btn btn-outline btn-sm"
+           href="mailto:{{ message.email }}?subject=Re: {{ message.subject or 'your message' }}">
+          Reply by email
+        </a>
+        <form method="post" action="{{ url_for('admin.toggle_message', message_id=message.id) }}">
+          <button type="submit" class="btn btn-sm {{ 'btn-outline' if message.is_read }}">
+            {{ 'Mark unread' if message.is_read else 'Mark read' }}
+          </button>
+        </form>
+        <form method="post" action="{{ url_for('admin.delete_message', message_id=message.id) }}"
+              onsubmit="return confirm('Delete this message? This cannot be undone.');">
+          <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+        </form>
+      </div>
+    </div>
+  {% endfor %}
+{% endif %}
+{% endblock %}

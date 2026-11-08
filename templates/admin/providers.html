@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Providers - Admin{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <h1>{% if active_status == 'pending' %}Providers waiting for approval{% else %}Service providers{% endif %}</h1>
+  <p>Approve new providers so customers can find them, or deactivate ones that should be hidden.</p>
+</div>
+
+{# The status chips keep whatever has been searched for, so the two combine. #}
+<div class="filters">
+  <a href="{{ url_for('admin.providers', search=search or none) }}"
+     class="{{ 'active' if not active_status }}">All</a>
+  <a href="{{ url_for('admin.providers', status='pending', search=search or none) }}"
+     class="{{ 'active' if active_status == 'pending' }}">Waiting for approval</a>
+  <a href="{{ url_for('admin.providers', status='approved', search=search or none) }}"
+     class="{{ 'active' if active_status == 'approved' }}">Approved</a>
+</div>
+
+{% with endpoint = 'admin.providers',
+        placeholder = 'Search providers...',
+        keep = {'status': active_status} %}
+  {% include "_admin_search.html" %}
+{% endwith %}
+
+<div class="card">
+  {% if not providers %}
+    <div class="empty">
+      {% if search %}
+        <strong>No providers found.</strong>
+        <p>
+          Nothing matches &ldquo;{{ search }}&rdquo;{% if active_status %}
+            among {{ 'providers waiting for approval' if active_status == 'pending' else 'approved providers' }}{% endif %}.
+          Try a different search term.
+        </p>
+        <a class="btn btn-outline" href="{{ url_for('admin.providers', status=active_status or none) }}">
+          Clear the search
+        </a>
+      {% else %}
+        <strong>{% if active_status == 'pending' %}No providers are waiting for approval{% else %}No providers registered{% endif %}</strong>
+        {% if active_status %}<a href="{{ url_for('admin.providers') }}">Show all providers</a>
+        {% else %}Providers appear here as soon as they sign up.{% endif %}
+      {% endif %}
+    </div>
+  {% else %}
+    {% include "admin/_providers_table.html" %}
+  {% endif %}
+</div>
+{% endblock %}

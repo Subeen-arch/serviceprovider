@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Favourites - Service Provider{% endblock %}
+
+{% block content %}
+<div class="page-head wide-head">
+  <h1>Favourites</h1>
+  <p>Providers you saved after they completed a job for you. Booking one again takes you straight back to their service.</p>
+</div>
+
+{% if not providers %}
+  <div class="empty">
+    <strong>You have not saved any providers yet.</strong>
+    <p>Once a provider completes a job, use the heart on the booking to keep them here.</p>
+    <a class="btn" href="{{ url_for('user.bookings') }}">Go to my bookings</a>
+  </div>
+{% else %}
+  <div class="favourites-grid">
+    {% for provider in providers %}
+      <article class="favourite-card">
+        <div class="favourite-card-head">
+          <div>
+            <h2>{{ provider.business_name }}</h2>
+            <p>{{ provider.service_name }} · {{ provider.provider_name }}</p>
+          </div>
+          <form method="post" action="{{ url_for('user.toggle_favourite', provider_id=provider.id) }}">
+            <button type="submit" class="heart on" title="Remove from favourites" aria-label="Remove {{ provider.business_name }} from favourites">★</button>
+          </form>
+        </div>
+
+        <p class="favourite-address">{{ provider.address }}</p>
+        <div class="favourite-facts">
+          <span><b class="mono">Rs {{ '%.0f'|format(provider.hourly_rate) }}</b><small>per hour</small></span>
+          <span>
+            {% if provider.review_count %}
+              <b class="mono">{{ '%.1f'|format(provider.avg_rating) }} ★</b><small>{{ provider.review_count }} reviews</small>
+            {% else %}
+              <b>New</b><small>No reviews yet</small>
+            {% endif %}
+          </span>
+          <span><b class="mono">{{ provider.experience_years }}</b><small>years</small></span>
+        </div>
+
+        {% if provider.is_approved and provider.is_available and provider.account_active %}
+          <a class="btn btn-outline btn-block" href="{{ url_for('user.search', service_id=provider.service_id) }}">Book again</a>
+        {% else %}
+          <span class="hint">Not taking bookings at the moment.</span>
+        {% endif %}
+      </article>
+    {% endfor %}
+  </div>
+{% endif %}
+{% endblock %}

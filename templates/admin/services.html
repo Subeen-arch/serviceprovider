@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}Services - Admin{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <h1>Service categories</h1>
+  <p>Hiding a service removes it from the customer search without deleting its providers.</p>
+</div>
+
+<div class="grid grid-2">
+  <div class="card">
+    <h2>Add a service</h2>
+    <form method="post" novalidate>
+      <div class="field">
+        <label for="name">Service name</label>
+        <input type="text" id="name" name="name" required maxlength="60" placeholder="e.g. Gardener">
+      </div>
+      <div class="field">
+        <label for="icon">Icon</label>
+        <input type="text" id="icon" name="icon" maxlength="10" placeholder="🌿">
+        <div class="hint">A single emoji shown on the service tile.</div>
+      </div>
+      <div class="field">
+        <label for="description">Short description</label>
+        <input type="text" id="description" name="description" maxlength="255"
+               placeholder="What this service covers">
+      </div>
+      <button type="submit" class="btn">Add service</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>All services</h2>
+    <p class="hint">Click a service name to see only the providers who offer it.</p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Service</th><th class="num">Providers</th><th>Status</th><th>Action</th></tr>
+        </thead>
+        <tbody>
+          {% for service in services %}
+            <tr>
+              <td>
+                <a class="service-name"
+                   href="{{ url_for('admin.service_providers', service_id=service.id) }}">
+                  {{ service.icon }} {{ service.name }}
+                </a>
+                {% if service.description %}<div class="hint">{{ service.description }}</div>{% endif %}
+              </td>
+              <td class="num">
+                <a href="{{ url_for('admin.service_providers', service_id=service.id) }}">
+                  {{ service.provider_count }}
+                </a>
+              </td>
+              <td>
+                {% if service.is_active %}
+                  <span class="badge badge-completed">Visible</span>
+                {% else %}
+                  <span class="badge badge-muted">Hidden</span>
+                {% endif %}
+              </td>
+              <td>
+                {# One menu per row, so Update / Hide / Delete fit in the
+                   column without the table becoming a wall of buttons. It is a
+                   <details> element, which the browser opens and closes on its
+                   own - so the actions are reachable even with JavaScript off. #}
+                <details class="menu row-menu">
+                  <summary class="btn btn-outline btn-sm">
+                    Actions <span class="caret" aria-hidden="true">&#9662;</span>
+                  </summary>
+
+                  <div class="row-menu-list">
+                    <a href="{{ url_for('admin.edit_service', service_id=service.id) }}">Update</a>
+
+                    <form method="post"
+                          action="{{ url_for('admin.toggle_service', service_id=service.id) }}">
+                      <button type="submit">{{ 'Hide' if service.is_active else 'Show' }}</button>
+                    </form>
+
+                    <div class="row-menu-sep"></div>
+
+                    {# POST, never a link, so a delete can never happen by
+                       following a URL. The server checks the dependencies
+                       again before it removes anything. #}
+                    <form method="post"
+                          action="{{ url_for('admin.delete_service', service_id=service.id) }}"
+                          onsubmit="return confirm('Delete the service &quot;{{ service.name }}&quot;? This cannot be undone.');">
+                      <button type="submit" class="is-danger">Delete</button>
+                    </form>
+                  </div>
+                </details>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

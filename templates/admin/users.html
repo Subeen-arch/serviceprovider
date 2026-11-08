@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Users - Admin{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <h1>{% if active_role == 'user' %}Customers{% elif active_role == 'provider' %}Provider accounts{% elif active_role == 'admin' %}Administrators{% else %}User accounts{% endif %}</h1>
+  <p>Deactivating an account blocks login immediately and hides that provider from search.</p>
+</div>
+
+{# The role chips keep whatever has been searched for, so the two combine. #}
+<div class="filters">
+  <a href="{{ url_for('admin.users', search=search or none) }}"
+     class="{{ 'active' if not active_role }}">All roles</a>
+  <a href="{{ url_for('admin.users', role='user', search=search or none) }}"
+     class="{{ 'active' if active_role == 'user' }}">Customers</a>
+  <a href="{{ url_for('admin.users', role='provider', search=search or none) }}"
+     class="{{ 'active' if active_role == 'provider' }}">Providers</a>
+  <a href="{{ url_for('admin.users', role='admin', search=search or none) }}"
+     class="{{ 'active' if active_role == 'admin' }}">Admins</a>
+</div>
+
+{% with endpoint = 'admin.users',
+        placeholder = 'Search users...',
+        keep = {'role': active_role} %}
+  {% include "_admin_search.html" %}
+{% endwith %}
+
+<div class="card">
+  {% if not users %}
+    <div class="empty">
+      {% if search %}
+        <strong>No users found.</strong>
+        <p>Nothing matches &ldquo;{{ search }}&rdquo;. Try a different search term.</p>
+        <a class="btn btn-outline" href="{{ url_for('admin.users', role=active_role or none) }}">
+          Clear the search
+        </a>
+      {% else %}
+        <strong>No accounts to show</strong>
+        Accounts appear here as soon as people sign up.
+      {% endif %}
+    </div>
+  {% else %}
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th><th>Email</th><th>Phone</th>
+          <th>Role</th><th>Joined</th><th>Status</th><th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for user in users %}
+          <tr>
+            <td><b>{{ user.name }}</b></td>
+            <td>{{ user.email }}</td>
+            <td>{{ user.phone }}</td>
+            <td>
+              <span class="badge {{ 'badge-brand' if user.role == 'admin' else 'badge-muted' }}">{{ user.role }}</span>
+            </td>
+            <td>{{ user.created_at.strftime('%d %b %Y') }}</td>
+            <td>
+              {% if user.is_active %}
+                <span class="badge badge-completed">Active</span>
+              {% else %}
+                <span class="badge badge-rejected">Deactivated</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if user.role == 'admin' %}
+                <span class="hint">Protected</span>
+              {% else %}
+                <form method="post" action="{{ url_for('admin.toggle_user', user_id=user.id) }}"
+                      {% if user.is_active %}onsubmit="return confirm('Deactivate {{ user.name }}? They will be logged out and unable to sign in.');"{% endif %}>
+                  <button type="submit" class="btn btn-sm {{ 'btn-danger' if user.is_active else 'btn-ok' }}">
+                    {{ 'Deactivate' if user.is_active else 'Activate' }}
+                  </button>
+                </form>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

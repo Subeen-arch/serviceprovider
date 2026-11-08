@@ -1,0 +1,58 @@
+{# The road route for one existing booking: provider's base -> job address.
+
+   Shared by the administrator and provider booking pages so all three roles
+   see the same map. Needs `booking` and `galli_token` in the context.
+
+   The geometry comes from the routing engine through /api/route, which is open
+   to any signed-in role, so nothing new had to be exposed for this. #}
+<div class="card">
+  <div class="card-title">
+    <h2>Route to the job</h2>
+    {% if booking.distance_km is not none %}
+      <span class="badge badge-brand">{{ booking.distance_km }} km (Dijkstra)</span>
+    {% endif %}
+  </div>
+
+  <p class="hint tight">
+    From <b>{{ booking.business_name }}</b> at {{ booking.provider_address }}
+    to the job at {{ booking.address }}.
+  </p>
+
+  {% if galli_token %}
+    <div id="booking-map" class="map-box tall"></div>
+  {% else %}
+    <div class="map-missing">
+      The map is not configured. Add <code>GALLI_ACCESS_TOKEN</code> to your .env file.
+    </div>
+  {% endif %}
+
+  <div id="booking-map-status" class="map-status">Finding the road route&hellip;</div>
+
+  <p class="hint mt-3">
+    The blue marker is {{ booking.business_name }}; the red marker is the job.
+    {% if booking.distance_km is not none %}
+      The badge above is the graph distance Dijkstra used when this booking was
+      made, so it will differ slightly from the road distance shown below the map.
+    {% endif %}
+  </p>
+</div>
+
+<div id="pano"></div>
+
+{% if galli_token %}
+  {# Loaded here rather than in a scripts block so the partial works wherever
+     it is included, and so the SDK is in place before initRouteMap runs. #}
+  <script src="https://gallimap.com/static/dist/js/gallimaps.vector.min.latest.js"></script>
+  <script src="{{ url_for('static', filename='js/galli-map.js') }}"></script>
+  <script>
+    window.initRouteMap({
+      container: "booking-map",
+      token: {{ galli_token | tojson }},
+      statusId: "booking-map-status",
+      points: [
+        { lat: {{ booking.provider_lat }}, lng: {{ booking.provider_lng }} },
+        { lat: {{ booking.latitude }},     lng: {{ booking.longitude }} }
+      ]
+    });
+  </script>
+{% endif %}

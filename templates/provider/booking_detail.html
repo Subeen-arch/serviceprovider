@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}Booking #{{ booking.id }} - Service Provider{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <h1>Booking #{{ booking.id }}</h1>
+  <p>
+    <span class="badge badge-{{ booking.status }}">Booking: {{ booking.status }}</span>
+    {% if booking.payment_status %}
+      <span class="badge pay-{{ booking.payment_status }}">Payment: {{ booking.payment_status }}</span>
+    {% else %}
+      <span class="badge badge-muted">Payment: not required yet</span>
+    {% endif %}
+  </p>
+</div>
+
+<div class="grid grid-2">
+  <div class="card">
+    <h2>The job</h2>
+    <table>
+      <tbody>
+        <tr><th>Service</th><td>{{ booking.service_icon }} {{ booking.service_name }}</td></tr>
+        <tr><th>When</th>
+            <td>{{ booking.scheduled_date.strftime('%A %d %B %Y') }} at {{ booking.scheduled_time | hhmm }}</td></tr>
+        <tr><th>Expected length</th>
+            <td>{{ booking.estimated_hours }} hour{{ 's' if booking.estimated_hours != 1 }}</td></tr>
+        <tr><th>Address</th><td>{{ booking.address }}</td></tr>
+        <tr><th>Note</th><td>{{ booking.note or '—' }}</td></tr>
+        <tr><th>Requested</th><td>{{ booking.created_at.strftime('%d %b %Y, %H:%M') }}</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>Customer</h2>
+    <table>
+      <tbody>
+        <tr><th>Name</th><td>{{ booking.customer_name }}</td></tr>
+        <tr><th>Phone</th>
+            <td>
+              {% if booking.status in ['accepted', 'completed'] %}
+                {{ booking.customer_phone }}
+              {% else %}
+                <span class="hint">Shown once you accept the job</span>
+              {% endif %}
+            </td></tr>
+        <tr><th>Amount</th>
+            <td>Rs {{ '%.2f'|format(booking.hourly_rate * booking.estimated_hours) }}
+                <div class="hint">{{ booking.estimated_hours }} hr at Rs {{ '%.0f'|format(booking.hourly_rate) }}/hr</div></td></tr>
+      </tbody>
+    </table>
+
+    {# The same rules as the list page, checked again on the server. #}
+    <div class="mt-4">
+      {% if booking.status == 'pending' %}
+        <div class="btn-row">
+          <form method="post" action="{{ url_for('provider.update_booking', booking_id=booking.id, action='accept') }}">
+            <button type="submit" class="btn btn-ok btn-sm">Accept</button>
+          </form>
+          <form method="post" action="{{ url_for('provider.update_booking', booking_id=booking.id, action='reject') }}"
+                onsubmit="return confirm('Reject this request? The customer will not be charged.');">
+            <button type="submit" class="btn btn-danger btn-sm">Reject</button>
+          </form>
+        </div>
+      {% elif booking.status == 'accepted' %}
+        {% if booking.payment_status == 'paid' %}
+          <form method="post" action="{{ url_for('provider.update_booking', booking_id=booking.id, action='complete') }}">
+            <button type="submit" class="btn btn-sm">Mark completed</button>
+          </form>
+        {% else %}
+          <p class="hint">
+            Waiting for the customer to pay - the job can be marked completed
+            once the payment arrives.
+          </p>
+        {% endif %}
+      {% else %}
+        <p class="hint">No action is available for a {{ booking.status }} booking.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{% include "_booking_map.html" %}
+
+{% if booking.review_id %}
+  <div class="card">
+    <h2>What the customer said</h2>
+    <p>
+      <span class="stars" aria-label="{{ booking.review_rating }} out of 5">{{ '★' * booking.review_rating }}{{ '☆' * (5 - booking.review_rating) }}</span>
+      {% if booking.review_comment %}&mdash; {{ booking.review_comment }}{% endif %}
+    </p>
+  </div>
+{% endif %}
+
+<div class="card">
+  <a class="btn btn-outline" href="{{ url_for('provider.bookings') }}">Back to my bookings</a>
+</div>
+{% endblock %}

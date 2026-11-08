@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}Bookings - Admin{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <h1>
+    {% if service %}{{ service.icon }} {{ service.name }} bookings{% else %}All bookings{% endif %}
+  </h1>
+  <p>
+    {% if service %}
+      Every booking for this service, newest first.
+      <a href="{{ url_for('admin.bookings', status=active_status) }}">Show all services</a>
+    {% else %}
+      Every booking on the platform, newest first.
+    {% endif %}
+  </p>
+</div>
+
+{# Keeping the service filter while switching status, so the two combine. #}
+<div class="filters">
+  <a href="{{ url_for('admin.bookings', service_id=service.id if service else None, search=search or none) }}"
+     class="{{ 'active' if not active_status }}">All</a>
+  {% for status in statuses %}
+    <a href="{{ url_for('admin.bookings', status=status, service_id=service.id if service else None, search=search or none) }}"
+       class="{{ 'active' if active_status == status }}">{{ status|capitalize }}</a>
+  {% endfor %}
+</div>
+
+{% with endpoint = 'admin.bookings',
+        placeholder = 'Search bookings...',
+        keep = {'status': active_status, 'service_id': service.id if service else None} %}
+  {% include "_admin_search.html" %}
+{% endwith %}
+
+<div class="card">
+  {% if not bookings %}
+    <div class="empty">
+      {% if search %}
+        <strong>No bookings found.</strong>
+        <p>
+          Nothing matches &ldquo;{{ search }}&rdquo;{{ ' among %s bookings'|format(active_status) if active_status }}.
+          Try a different search term - a booking number, a customer, a provider or a service.
+        </p>
+        <a class="btn btn-outline"
+           href="{{ url_for('admin.bookings', status=active_status or none) }}">Clear the search</a>
+      {% else %}
+        <strong>No {{ active_status }} bookings</strong>
+        {% if active_status %}
+          <a href="{{ url_for('admin.bookings') }}">Show all bookings</a>
+        {% else %}
+          Bookings will appear here as customers make them.
+        {% endif %}
+      {% endif %}
+    </div>
+  {% else %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th><th>Service</th><th>Customer</th><th>Provider</th>
+            <th>Scheduled</th><th class="num">Distance</th>
+            <th>Booking</th><th>Payment</th><th>Route</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for booking in bookings %}
+            <tr class="row-link">
+              <td>
+                <a class="row-target" href="{{ url_for('admin.booking_detail', booking_id=booking.id) }}">
+                  #{{ booking.id }}
+                </a>
+              </td>
+              <td>{{ booking.service_name }}</td>
+              <td>
+                {{ booking.customer_name }}
+                <div class="hint">{{ booking.customer_phone }}</div>
+              </td>
+              <td>
+                {{ booking.business_name }}
+                <div class="hint">{{ booking.provider_name }}</div>
+              </td>
+              <td>
+                {{ booking.scheduled_date.strftime('%d %b %Y') }}
+                <div class="hint">{{ booking.scheduled_time | hhmm }}</div>
+              </td>
+              <td class="num">{{ booking.distance_km ~ ' km' if booking.distance_km is not none else '—' }}</td>
+              <td><span class="badge badge-{{ booking.status }}">{{ booking.status }}</span></td>
+              <td>
+                {% if booking.payment_status %}
+                  <span class="badge pay-{{ booking.payment_status }}">{{ booking.payment_status }}</span>
+                  <div class="hint">Rs {{ '%.0f'|format(booking.payment_amount) }}</div>
+                  {% if booking.payment_transaction_id %}
+                    <div class="hint">{{ booking.payment_transaction_id }}</div>
+                  {% endif %}
+                {% else %}
+                  <span class="badge badge-muted">none</span>
+                {% endif %}
+              </td>
+              <td>
+                <a class="btn btn-outline btn-sm"
+                   href="{{ url_for('admin.booking_detail', booking_id=booking.id) }}">
+                  View route
+                </a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

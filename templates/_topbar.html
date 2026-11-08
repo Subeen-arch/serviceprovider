@@ -1,0 +1,45 @@
+{% from "_icons.html" import icon %}
+
+<header class="top-header">
+  <button type="button" class="mobile-menu-button" id="menuButton"
+          aria-controls="sidebar" aria-expanded="false" aria-label="Open the menu">
+    {{ icon('menu') }}
+  </button>
+
+  <a class="top-brand" href="{{ url_for('index') }}">
+    <span class="top-brand-mark" aria-hidden="true"></span>
+    <span>Service Provider</span>
+  </a>
+
+  <div class="staff-context">
+    <span class="staff-context-label">{{ 'Administrator' if current_user.role == 'admin' else 'Provider' }}</span>
+  </div>
+
+  <div class="top-header-actions">
+    <a class="top-icon{{ ' is-current' if request.endpoint == 'user.notifications' }}"
+       href="{{ url_for('user.notifications') }}"
+       title="Alerts"
+       aria-label="Alerts{{ ', %d unread'|format(unread_notifications) if unread_notifications }}">
+      {{ icon('bell') }}
+      {% if unread_notifications %}<span class="icon-badge">{{ unread_notifications }}</span>{% endif %}
+    </a>
+
+    <details class="menu account-dropdown">
+      <summary class="top-icon" id="accountButton" title="Account" aria-label="Account">
+        <span class="account-avatar" aria-hidden="true">{{ current_user.name[:1]|upper }}</span>
+      </summary>
+      <div class="account-menu" id="accountMenu">
+        <div class="account-who">
+          <b>{{ current_user.name }}</b>
+          <span>{{ current_user.email }}</span>
+        </div>
+        <a href="{{ url_for('user.profile') }}">{{ icon('card') }} Profile</a>
+        <a href="{{ url_for('user.profile') }}#security">{{ icon('lock') }} Security</a>
+        <div class="account-sep"></div>
+        <form method="post" action="{{ url_for('auth.logout') }}">
+          <button type="submit" class="account-logout">{{ icon('logout') }} Log out</button>
+        </form>
+      </div>
+    </details>
+  </div>
+</header>

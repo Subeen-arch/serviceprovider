@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}My reviews - Service Provider{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <h1>My reviews</h1>
+  <p>What customers said after you completed their job.</p>
+</div>
+
+{% include "_rating_summary.html" %}
+
+{% with endpoint = 'provider.reviews' %}
+  {% include "_review_filters.html" %}
+{% endwith %}
+
+<div class="card">
+  {% if not reviews %}
+    <div class="empty">
+      {% if active_rating %}
+        <strong>No {{ active_rating }}-star reviews found.</strong>
+        <p>Try a different rating.</p>
+        <a class="btn btn-outline" href="{{ url_for('provider.reviews', sort=active_sort) }}">
+          Show all ratings
+        </a>
+      {% else %}
+        <strong>No reviews yet</strong>
+        Customers can rate you once you mark a job as completed.
+      {% endif %}
+    </div>
+  {% else %}
+    {% for review in reviews %}
+      <div class="review">
+        <div class="who">
+          {{ review.customer_name }}
+          <span class="stars" aria-label="{{ review.rating }} out of 5">{{ '★' * review.rating }}{{ '☆' * (5 - review.rating) }}</span>
+        </div>
+        <div class="when">{{ review.service_name }} &middot; {{ review.created_at.strftime('%d %b %Y') }}</div>
+        {% if review.comment %}<p class="mt-2 mb-0">{{ review.comment }}</p>{% endif %}
+      </div>
+    {% endfor %}
+  {% endif %}
+</div>
+
+<div class="card">
+  <a class="btn btn-outline" href="{{ url_for('provider.dashboard') }}">Back to dashboard</a>
+</div>
+{% endblock %}

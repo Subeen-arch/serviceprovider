@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Contact us - Service Provider{% endblock %}
+
+{% block content %}
+<div class="page-head contact-head">
+  <h1>Contact us</h1>
+  <p>Problems with a booking, a provider or a payment. Send the details and the administrator can review the message.</p>
+</div>
+
+<div class="contact-layout">
+  <form method="post" novalidate class="contact-form">
+    <div class="field">
+      <label for="name">Your name</label>
+      <input type="text" id="name" name="name" value="{{ form.name or '' }}" required maxlength="80" autocomplete="name">
+    </div>
+
+    <div class="field">
+      <label for="email">Email address</label>
+      <input type="email" id="email" name="email" value="{{ form.email or '' }}" required maxlength="120" autocomplete="email">
+    </div>
+
+    <div class="field">
+      <label for="subject">What is this about? <span class="hint optional">(optional)</span></label>
+      <input type="text" id="subject" name="subject" value="{{ form.subject or '' }}" maxlength="120" placeholder="e.g. A booking I made">
+    </div>
+
+    <div class="field">
+      <label for="message">Message</label>
+      <textarea id="message" name="message" required maxlength="2000" rows="7">{{ form.message or '' }}</textarea>
+      <div class="hint">Include a booking number when the message is about a specific job.</div>
+    </div>
+
+    <button type="submit" class="btn">Send message</button>
+  </form>
+
+  <aside class="contact-aside">
+    <div class="eyebrow">Other ways</div>
+    <div class="contact-aside-block">
+      <strong>Phone</strong>
+      <span class="mono">01-4567890</span>
+    </div>
+    <div class="contact-aside-block">
+      <strong>Office</strong>
+      <span>Naxal, Kathmandu-1</span>
+      <span>Sun–Fri, 10:00–17:00</span>
+    </div>
+    {% if not current_user %}
+      <p class="hint">You can contact us without an account. For a booking problem, logging in first makes it easier to identify the booking.</p>
+    {% endif %}
+  </aside>
+</div>
+{% endblock %}

@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}My working hours - Service Provider{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <h1>My working hours</h1>
+  <p>Customers can only book you on a day and time you work.</p>
+</div>
+
+{% if using_default %}
+  <div class="alert alert-info">
+    You have not set any working hours, so you are treated as available
+    <b>every day from {{ '06:00' }} to {{ '20:00' }}</b>. Tick the days you
+    actually work to narrow that down.
+  </div>
+{% endif %}
+
+<form method="post" novalidate>
+  <div class="card">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Day</th><th>I work this day</th><th>From</th><th>To</th></tr>
+        </thead>
+        <tbody>
+          {% for day in week %}
+            <tr>
+              <td><b>{{ day.name }}</b></td>
+              <td>
+                <div class="check">
+                  <input type="checkbox" id="work_{{ day.weekday }}"
+                         name="work_{{ day.weekday }}" value="1"
+                         {{ 'checked' if day.works }}>
+                  <label for="work_{{ day.weekday }}">Working</label>
+                </div>
+              </td>
+              <td>
+                <label class="sr-only" for="start_{{ day.weekday }}">{{ day.name }} start</label>
+                <input type="time" id="start_{{ day.weekday }}"
+                       name="start_{{ day.weekday }}" value="{{ day.start }}">
+              </td>
+              <td>
+                <label class="sr-only" for="end_{{ day.weekday }}">{{ day.name }} end</label>
+                <input type="time" id="end_{{ day.weekday }}"
+                       name="end_{{ day.weekday }}" value="{{ day.end }}">
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="hint mt-3">
+      Leaving every day unticked puts you back to being available every day
+      from 06:00 to 20:00.
+    </p>
+  </div>
+
+  <div class="card">
+    <button type="submit" class="btn">Save working hours</button>
+    <a class="btn btn-outline" href="{{ url_for('provider.dashboard') }}">Back to dashboard</a>
+  </div>
+</form>
+{% endblock %}

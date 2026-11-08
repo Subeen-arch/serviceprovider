@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block title %}My provider profile - Service Provider{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <h1>My provider profile</h1>
+  <p>These details decide where you appear in customer searches and how you are ranked.</p>
+</div>
+
+<form method="post" novalidate>
+  <div class="grid grid-2">
+
+    <div class="card">
+      <h2>Service details</h2>
+
+      <div class="field">
+        <label for="service_id">Service you provide</label>
+        <select id="service_id" name="service_id" required>
+          {% for service in services %}
+            <option value="{{ service.id }}" {{ 'selected' if service.id == profile.service_id }}>
+              {{ service.name }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="business_name">Business or trading name</label>
+        <input type="text" id="business_name" name="business_name"
+               value="{{ profile.business_name }}" required maxlength="100">
+      </div>
+
+      <div class="grid grid-2">
+        <div class="field">
+          <label for="hourly_rate">Hourly rate (Rs)</label>
+          <input type="number" id="hourly_rate" name="hourly_rate" min="0" step="10"
+                 value="{{ '%.0f'|format(profile.hourly_rate) }}" required>
+          <div class="hint">Lower rates score better.</div>
+        </div>
+        <div class="field">
+          <label for="experience_years">Years of experience</label>
+          <input type="number" id="experience_years" name="experience_years" min="0" max="60"
+                 value="{{ profile.experience_years }}" required>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="bio">About your work</label>
+        <textarea id="bio" name="bio" maxlength="500">{{ profile.bio }}</textarea>
+      </div>
+
+      <div class="check mt-4">
+        <input type="checkbox" id="is_available" name="is_available" value="1"
+               {{ 'checked' if profile.is_available }}>
+        <label for="is_available">I am available for new bookings</label>
+      </div>
+      <div class="hint">Untick this to temporarily hide yourself from search results.</div>
+
+      <div class="map-status mt-4">
+        <strong>Approval status:</strong>
+        {% if profile.is_approved %}
+          <span class="badge badge-completed">Approved</span> &mdash; customers can find you.
+        {% else %}
+          <span class="badge badge-pending">Awaiting approval</span> &mdash; only an administrator can change this.
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Where you work from</h2>
+      <p class="hint tight">
+        Your location is the destination Dijkstra routes customers to, so keep it accurate.
+      </p>
+
+      <div class="field">
+        <label for="address">Work address</label>
+        <input type="text" id="address" name="address" value="{{ profile.address }}" required maxlength="150">
+      </div>
+
+      {% if galli_token %}
+        <div id="map" class="map-box"></div>
+      {% else %}
+        <div class="map-missing">
+          The map is not configured. Add <code>GALLI_ACCESS_TOKEN</code> to your .env file.
+        </div>
+      {% endif %}
+
+      <div id="map-status" class="map-status">
+        <strong>Current location:</strong> {{ profile.address }}
+        <br><small>{{ '%.5f'|format(profile.latitude) }}, {{ '%.5f'|format(profile.longitude) }}</small>
+      </div>
+
+      <input type="hidden" id="latitude"  name="latitude"  value="{{ profile.latitude }}">
+      <input type="hidden" id="longitude" name="longitude" value="{{ profile.longitude }}">
+    </div>
+  </div>
+
+  <div class="card mt-4">
+    <button type="submit" class="btn">Save profile</button>
+    <a class="btn btn-outline" href="{{ url_for('provider.dashboard') }}">Back to dashboard</a>
+  </div>
+</form>
+
+<div id="pano"></div>
+{% endblock %}
+
+{% block scripts %}
+{% if galli_token %}
+  <script src="https://gallimap.com/static/dist/js/gallimaps.vector.min.latest.js"></script>
+{% endif %}
+<script src="{{ url_for('static', filename='js/galli-map.js') }}"></script>
+<script>
+  window.initLocationPicker({
+    container: "map",
+    token: {{ galli_token | tojson }},
+    center: [{{ profile.latitude }}, {{ profile.longitude }}],
+    zoom: 15,
+    latInput: "latitude",
+    lngInput: "longitude",
+    addressInput: "address",
+    statusId: "map-status"
+  });
+</script>
+{% endblock %}

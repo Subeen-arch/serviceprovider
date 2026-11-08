@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Alerts - Service Provider{% endblock %}
+
+{% block content %}
+<div class="page-head alerts-head">
+  <h1>Alerts</h1>
+  <p>Booking, payment and account updates, newest first.</p>
+</div>
+
+{% if not notifications %}
+  <div class="empty"><strong>No alerts yet</strong>You will see an alert here whenever one of your bookings or payments changes.</div>
+{% else %}
+  <div class="notification-list">
+    {% for item in notifications %}
+      <article class="notification-item {{ 'unread' if not item.is_read }}">
+        <span class="notification-dot" aria-hidden="true"></span>
+        <div class="notification-copy">
+          <h2>{{ item.title or 'Booking update' }}</h2>
+          <p>{{ item.message }}</p>
+        </div>
+        <div class="notification-side">
+          <time class="mono">{{ item.created_at.strftime('%d %b %Y') }}</time>
+          {% if item.booking_id and current_user.role == 'user' %}<a href="{{ url_for('user.bookings') }}">View booking</a>{% endif %}
+          {% if item.booking_id and current_user.role == 'provider' %}<a href="{{ url_for('provider.bookings') }}">View booking</a>{% endif %}
+        </div>
+      </article>
+    {% endfor %}
+  </div>
+{% endif %}
+{% endblock %}

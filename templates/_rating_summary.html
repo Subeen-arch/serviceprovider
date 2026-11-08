@@ -1,0 +1,32 @@
+{# ---------------------------------------------------------------------------
+   Overall rating and how the stars are spread. Every number is counted from
+   the reviews table when the page is built, so nothing here can drift out of
+   step with the reviews themselves.
+
+   Needs `summary` from queries.rating_breakdown().
+   --------------------------------------------------------------------------#}
+<div class="card rating-summary">
+  <div class="rating-overall">
+    <b>{% if summary.total %}{{ '%.1f'|format(summary.average) }}{% else %}&mdash;{% endif %}</b>
+    <span class="stars" aria-hidden="true">
+      {{ '★' * (summary.average | round | int) }}{{ '☆' * (5 - (summary.average | round | int)) }}
+    </span>
+    <span class="hint">
+      {{ summary.total }} review{{ 's' if summary.total != 1 }}
+    </span>
+  </div>
+
+  <ul class="rating-bars">
+    {% for star in [5, 4, 3, 2, 1] %}
+      {% set count = summary.counts[star] %}
+      {% set share = (count / summary.total * 100) if summary.total else 0 %}
+      <li>
+        <span class="rating-star">{{ star }} &#9733;</span>
+        <span class="rating-track">
+          <span class="rating-fill" style="width: {{ '%.0f'|format(share) }}%;"></span>
+        </span>
+        <span class="rating-count">{{ count }}</span>
+      </li>
+    {% endfor %}
+  </ul>
+</div>

@@ -1,0 +1,7 @@
+<aside class="answers-card">
+  <span class="eyebrow">Your answers so far</span>
+  <div><small>Service</small><strong>{{ selected_service.name }}{% if selected_job %} — {{ selected_job }}{% endif %}</strong></div>
+  {% if address %}<div><small>Location</small><strong>{{ address }}</strong></div>{% endif %}
+  {% if scheduled_date %}<div><small>When</small><strong>{{ scheduled_date }}{% if scheduled_time %}, {{ scheduled_time }}{% endif %} · {{ estimated_hours }} hours</strong></div>{% endif %}
+  {% if mode %}<div><small>Priority</small><strong>{{ modes[mode].label }}</strong></div>{% endif %}
+</aside>

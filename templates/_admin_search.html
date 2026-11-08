@@ -1,0 +1,33 @@
+{# ---------------------------------------------------------------------------
+   The search box used on the admin's Providers, Users and Bookings pages.
+
+   `keep` carries whichever filter is already switched on, so searching inside
+   "Waiting for approval" stays inside it, and clearing the search comes back
+   to the same filter rather than to everything.
+
+   Needs `endpoint`, `placeholder`, `search`, and optionally `keep` (a dict of
+   extra query parameters to hold on to).
+   --------------------------------------------------------------------------#}
+{% from "_icons.html" import icon %}
+{% set keep = keep if keep is defined else {} %}
+
+<div class="toolbar">
+  <form method="get" action="{{ url_for(endpoint) }}">
+    {# The current filter travels with the search as a hidden field. #}
+    {% for name, value in keep.items() %}
+      {% if value %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endif %}
+    {% endfor %}
+
+    <div class="grow search-field">
+      <label class="sr-only" for="search">{{ placeholder }}</label>
+      {{ icon('search') }}
+      <input type="search" id="search" name="search" value="{{ search }}"
+             placeholder="{{ placeholder }}" autocomplete="off">
+    </div>
+
+    <button type="submit" class="btn btn-outline">Search</button>
+    {% if search %}
+      <a class="btn btn-outline" href="{{ url_for(endpoint, **keep) }}">Clear</a>
+    {% endif %}
+  </form>
+</div>

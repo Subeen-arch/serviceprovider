@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% block title %}My bookings - Service Provider{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <h1>My bookings</h1>
+  <p>
+    Manage requests and track your jobs.
+    {% if active_status or search %}
+      Showing {{ bookings|length }} of {{ total }}{{ ' matching "%s"'|format(search) if search }}.
+    {% endif %}
+  </p>
+</div>
+
+{# One line each so the whole icon set is readable. Our own literals, never
+   anything a user typed, so they are safe to render as markup. #}
+{% set tab_icons = {
+  '':          'M4 6h16M4 12h16M4 18h16',
+  'pending':   'M12 22a10 10 0 110-20 10 10 0 010 20zM12 7v5l3.5 2',
+  'accepted':  'M20 6L9 17l-5-5',
+  'rejected':  'M18 6L6 18M6 6l12 12',
+  'completed': 'M22 11.1V12a10 10 0 11-5.93-9.14M22 4L12 14.01l-3-3',
+  'cancelled': 'M12 22a10 10 0 110-20 10 10 0 010 20zM4.93 4.93l14.14 14.14'
+} %}
+{% set tab_labels = {'': 'All'} %}
+
+{# Status filter bar. Every link carries the current search so switching tab
+   never throws away what was typed. #}
+<nav class="status-tabs" aria-label="Filter bookings by status">
+  {% for key in [''] + statuses|list %}
+    {% set is_active = (active_status == key) %}
+    <a class="status-tab {{ 'is-active' if is_active }} {{ 'is-empty' if not counts[key] }}"
+       data-status="{{ key }}"
+       href="{{ url_for('provider.bookings', status=key or none, q=search or none) }}"
+       {{ 'aria-current=page' if is_active }}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="{{ tab_icons[key] }}"></path>
+      </svg>
+      {{ tab_labels.get(key, key|capitalize) }}
+      <span class="tab-count">{{ counts[key] }}</span>
+    </a>
+  {% endfor %}
+</nav>
+
+{# The search keeps whichever status filter is active, and vice versa. #}
+<div class="toolbar">
+  <form method="get" action="{{ url_for('provider.bookings') }}">
+    <input type="hidden" name="status" value="{{ active_status }}">
+    <div class="grow">
+      <label class="sr-only" for="q">Search customer by name</label>
+      <input type="search" id="q" name="q" value="{{ search }}"
+             placeholder="Search customer by name...">
+    </div>
+    <button type="submit" class="btn btn-outline">Search</button>
+    {% if search %}
+      <a class="btn btn-outline"
+         href="{{ url_for('provider.bookings', status=active_status or none) }}">Clear</a>
+    {% endif %}
+  </form>
+</div>
+
+{% if not bookings %}
+  <div class="empty">
+    {% if search %}
+      <strong>No bookings found for this search.</strong>
+      <p>Nothing matches &ldquo;{{ search }}&rdquo;{{ ' among %s bookings'|format(active_status) if active_status }}.</p>
+      <a class="btn btn-outline" href="{{ url_for('provider.bookings', status=active_status) }}">Clear the search</a>
+    {% else %}
+      <strong>No {{ active_status }} bookings</strong>
+      {% if active_status %}
+        <a href="{{ url_for('provider.bookings') }}">Show all bookings</a>
+      {% else %}
+        When a customer books you, the request will appear here.
+      {% endif %}
+    {% endif %}
+  </div>
+{% else %}
+  {% for booking in bookings %}
+    <div class="card">
+      <div class="card-title">
+        <div>
+          <h2>{{ booking.service_icon }} {{ booking.customer_name }}</h2>
+          <p class="hint mb-0">
+            <a href="{{ url_for('provider.booking_detail', booking_id=booking.id) }}">Booking #{{ booking.id }}</a>
+            &middot;
+            {{ booking.scheduled_date.strftime('%d %b %Y') }} at {{ booking.scheduled_time | hhmm }}
+          </p>
+        </div>
+        <div class="badges">
+          <span class="badge badge-{{ booking.status }}">{{ booking.status }}</span>
+          {% if booking.payment_status %}
+            <span class="badge pay-{{ booking.payment_status }}">Payment: {{ booking.payment_status }}</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="facts">
+        <span><b>Address:</b> {{ booking.address }}</span>
+        {% if booking.distance_km is not none %}<span><b>{{ booking.distance_km }} km</b> away</span>{% endif %}
+        {% if booking.payment_amount is not none %}
+          <span><b>Rs {{ '%.0f'|format(booking.payment_amount) }}</b> for {{ booking.estimated_hours }} hr</span>
+        {% endif %}
+        {% if booking.status in ['accepted', 'completed'] %}
+          <span><b>Phone:</b> {{ booking.customer_phone }}</span>
+        {% endif %}
+      </div>
+
+      {% if booking.note %}<p class="hint"><b>Note:</b> {{ booking.note }}</p>{% endif %}
+
+      <p class="mt-2 mb-3">
+        <a class="btn btn-outline btn-sm"
+           href="{{ url_for('provider.booking_detail', booking_id=booking.id) }}">
+          View details &amp; route map
+        </a>
+      </p>
+
+      {# Only the actions that are valid for the current state are shown, and
+         the server checks them again before changing anything. #}
+      {# A new request is always unpaid - the customer pays once you accept. #}
+      {% if booking.status == 'pending' %}
+        <div class="btn-row">
+          <form method="post" action="{{ url_for('provider.update_booking', booking_id=booking.id, action='accept') }}">
+            <button type="submit" class="btn btn-ok btn-sm">Accept</button>
+          </form>
+          <form method="post" action="{{ url_for('provider.update_booking', booking_id=booking.id, action='reject') }}"
+                onsubmit="return confirm('Reject this request? The customer will not be charged.');">
+            <button type="submit" class="btn btn-danger btn-sm">Reject</button>
+          </form>
+        </div>
+      {% elif booking.status == 'accepted' %}
+        {% if booking.payment_status == 'paid' %}
+          <form method="post" action="{{ url_for('provider.update_booking', booking_id=booking.id, action='complete') }}">
+            <button type="submit" class="btn btn-ok btn-sm">Mark completed</button>
+          </form>
+        {% else %}
+          <p class="hint">
+            Accepted. Waiting for the customer to pay - the job can be marked
+            completed once the payment arrives.
+          </p>
+        {% endif %}
+      {% else %}
+        <p class="hint">No action is available for a {{ booking.status }} booking.</p>
+      {% endif %}
+
+      {% if booking.review_id %}
+        <p class="hint">
+          <b>Customer rating:</b>
+          <span class="stars">{{ '★' * booking.review_rating }}{{ '☆' * (5 - booking.review_rating) }}</span>
+          {% if booking.review_comment %}&mdash; {{ booking.review_comment }}{% endif %}
+        </p>
+      {% endif %}
+    </div>
+  {% endfor %}
+{% endif %}
+{% endblock %}

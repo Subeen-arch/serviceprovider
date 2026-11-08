@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}Provider dashboard - Service Provider{% endblock %}
+
+{% block content %}
+{% if not profile %}
+  <div class="empty"><strong>Your provider profile is missing</strong>Please contact the administrator so your service details can be restored.</div>
+{% else %}
+
+<div class="staff-page-head">
+  <div>
+    <h1>Good day, {{ current_user.name.split(' ')[0] }}</h1>
+    <p>
+      {% if stats.pending %}
+        {{ stats.pending }} request{{ 's are' if stats.pending != 1 else ' is' }} waiting for your answer.
+      {% else %}
+        You have no unanswered requests right now.
+      {% endif %}
+      {{ profile.business_name }} · {{ profile.service_name }}
+    </p>
+  </div>
+  <a class="btn" href="{{ url_for('provider.bookings', status='pending') }}">Answer requests</a>
+</div>
+
+{% if not profile.is_approved %}
+  <div class="alert alert-info">Your profile is waiting for administrator approval. Customers cannot find it until approval.</div>
+{% elif not profile.is_available %}
+  <div class="alert alert-info">You are marked as <b>not available</b>. <a href="{{ url_for('provider.profile') }}">Update your business profile</a> when you are ready to take work.</div>
+{% endif %}
+
+<div class="provider-overview-stats">
+  <a href="{{ url_for('provider.bookings', status='pending') }}"><span class="eyebrow">Waiting</span><b>{{ stats.pending }}</b><small>need your answer</small></a>
+  <a href="{{ url_for('provider.bookings', status='accepted') }}"><span class="eyebrow">Accepted</span><b>{{ stats.accepted }}</b><small>active jobs</small></a>
+  <a href="{{ url_for('provider.bookings', status='completed') }}"><span class="eyebrow">Completed</span><b>{{ stats.completed }}</b><small>finished jobs</small></a>
+  <a href="{{ url_for('provider.reviews') }}"><span class="eyebrow">Rating</span><b>{% if profile.review_count %}{{ '%.1f'|format(profile.avg_rating) }} ★{% else %}New{% endif %}</b><small>{{ profile.review_count }} review{{ 's' if profile.review_count != 1 }}</small></a>
+</div>
+
+<div class="provider-dashboard-grid">
+  <section>
+    <div class="section-title-row"><h2>Waiting for your answer</h2><a href="{{ url_for('provider.bookings') }}">All bookings →</a></div>
+    <div class="provider-request-list">
+      {% set pending = bookings | selectattr('status', 'equalto', 'pending') | list %}
+      {% if pending %}
+        {% for booking in pending[:4] %}
+          <article class="provider-request-card">
+            <div class="provider-request-main">
+              <div class="provider-request-ref"><span class="mono">#{{ booking.id }}</span><span class="badge badge-pending">Waiting</span></div>
+              <h3>{{ booking.customer_name }}</h3>
+              <p>{{ booking.service_name }}{% if booking.note %} — {{ booking.note }}{% endif %}</p>
+              <div class="provider-request-facts">
+                <span><span class="eyebrow">When</span><b class="mono">{{ booking.scheduled_date.strftime('%d %b') }}, {{ booking.scheduled_time | hhmm }}</b></span>
+                <span><span class="eyebrow">Where</span><b>{{ booking.address }}</b></span>
+                {% if booking.distance_km is not none %}<span><span class="eyebrow">Distance</span><b class="mono">{{ booking.distance_km }} km</b></span>{% endif %}
+              </div>
+            </div>
+            <aside class="provider-request-side">
+              <span class="eyebrow">You would earn</span>
+              <strong class="mono">Rs {{ '%.0f'|format(booking.hourly_rate * booking.estimated_hours) }}</strong>
+              <form method="post" action="{{ url_for('provider.update_booking', booking_id=booking.id, action='accept') }}"><button type="submit" class="btn btn-block">Accept</button></form>
+              <div class="provider-request-actions">
+                <a class="btn btn-outline btn-sm" href="{{ url_for('provider.booking_detail', booking_id=booking.id) }}">Details</a>
+                <form method="post" action="{{ url_for('provider.update_booking', booking_id=booking.id, action='reject') }}" onsubmit="return confirm('Reject this request?');"><button type="submit" class="btn btn-outline btn-sm reject-text">Reject</button></form>
+              </div>
+            </aside>
+          </article>
+        {% endfor %}
+      {% else %}
+        <div class="empty provider-empty"><strong>Nothing waiting</strong>New booking requests will appear here as soon as customers send them.</div>
+      {% endif %}
+    </div>
+
+    <div class="section-title-row provider-upcoming-title"><h2>Current and recent jobs</h2></div>
+    <div class="provider-schedule-list">
+      {% for booking in bookings[:6] %}
+        <a href="{{ url_for('provider.booking_detail', booking_id=booking.id) }}">
+          <span class="mono">{{ booking.scheduled_date.strftime('%d %b') }}</span>
+          <span class="mono">{{ booking.scheduled_time | hhmm }}</span>
+          <span><strong>{{ booking.customer_name }}</strong><small>{{ booking.address }}</small></span>
+          <span class="badge badge-{{ booking.status }}">{{ booking.status }}</span>
+        </a>
+      {% else %}
+        <div class="empty"><strong>No jobs yet</strong></div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <aside class="provider-dashboard-side">
+    <div class="provider-side-panel">
+      <span class="eyebrow">Business status</span>
+      <strong>{{ profile.business_name }}</strong>
+      <p>{{ profile.service_name }} · Rs {{ '%.0f'|format(profile.hourly_rate) }}/hr</p>
+      <div class="provider-status-line"><span class="notification-dot {{ 'provider-on' if profile.is_approved and profile.is_available }}"></span>{{ 'Approved and taking bookings' if profile.is_approved and profile.is_available else 'Needs attention' }}</div>
+      <a href="{{ url_for('provider.profile') }}">Edit business profile →</a>
+    </div>
+
+    <div class="provider-side-panel">
+      <span class="eyebrow">Latest reviews</span>
+      {% if reviews %}
+        {% for review in reviews[:3] %}
+          <div class="provider-mini-review"><span class="stars">{{ '★' * review.rating }}{{ '☆' * (5 - review.rating) }}</span><strong>{{ review.customer_name }}</strong>{% if review.comment %}<p>{{ review.comment }}</p>{% endif %}</div>
+        {% endfor %}
+        <a href="{{ url_for('provider.reviews') }}">All reviews →</a>
+      {% else %}
+        <p class="hint">You do not have any reviews yet.</p>
+      {% endif %}
+    </div>
+
+    <div class="provider-side-panel">
+      <span class="eyebrow">Working week</span>
+      <p>Keep your available days and hours accurate so customers only request times you can actually work.</p>
+      <a href="{{ url_for('provider.availability') }}">Edit working hours →</a>
+    </div>
+  </aside>
+</div>
+{% endif %}
+{% endblock %}

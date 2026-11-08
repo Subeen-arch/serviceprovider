@@ -1,0 +1,41 @@
+/* ==========================================================================
+   Admin-only overrides
+   --------------------------------------------------------------------------
+   The administrator works through long tables all day, so their pages are
+   tuned for scanning rather than for reading: rows are shorter, type is a
+   step smaller, and a hover highlight keeps the eye on the right line.
+
+   Everything else — colour, type, buttons, forms, badges — comes from
+   style.css. This file exists only for the differences.
+   ========================================================================== */
+
+/* --- denser rows ----------------------------------------------------------
+   44px is the comfortable row height for a table someone reads all day;
+   below that, scanning speed stops improving and mis-clicks start. */
+.admin tbody td,
+.admin tbody th { padding: 10px var(--s-3); }
+.admin thead th { padding: var(--s-2) var(--s-3); }
+.admin table    { font-size: var(--t-small); }
+
+/* Zebra striping earns its keep once a table is wide enough that the eye has
+   to travel: it keeps the reader on one record. */
+.admin tbody tr:nth-child(even) { background: var(--paper); }
+.admin tbody tr:hover           { background: var(--brand-tint); }
+
+/* --- the money column -----------------------------------------------------
+   Figures line up on the decimal point and never wrap. */
+.admin td.num, .admin th.num { white-space: nowrap; }
+
+/* A transaction reference is read character by character, so it is set in the
+   monospaced face and allowed to break rather than stretch the column. */
+.admin .mono { font-size: var(--t-micro); word-break: break-all; }
+
+/* --- card padding ---------------------------------------------------------
+   A table sits closer to the edge of its card than prose does. */
+.admin .card { padding: var(--s-4) var(--s-5); }
+.admin .table-wrap { margin: 0 calc(var(--s-5) * -1); padding: 0 var(--s-5); }
+
+@media (max-width: 720px) {
+  .admin .card { padding: var(--s-3) var(--s-4); }
+  .admin .table-wrap { margin: 0 calc(var(--s-4) * -1); padding: 0 var(--s-4); }
+}

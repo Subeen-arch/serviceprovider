@@ -1,0 +1,77 @@
+{# ---------------------------------------------------------------------------
+   The provider table, used by two pages: the full provider list, and the
+   list filtered to one service. Written once so the two can never drift apart.
+
+   Set show_service to false when every row is already known to be the same
+   service, which makes that column pointless.
+   --------------------------------------------------------------------------#}
+{% set show_service = show_service if show_service is defined else true %}
+
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Business</th>
+        <th>Owner</th>
+        {% if show_service %}<th>Service</th>{% endif %}
+        <th class="num">Rate</th>
+        <th class="num">Exp.</th>
+        <th class="num">Rating</th>
+        <th>Status</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for provider in providers %}
+        <tr>
+          <td>
+            <b>{{ provider.business_name }}</b>
+            {# The pin and the link go to this one provider's own map page. #}
+            <div class="hint">
+              <span aria-hidden="true">&#128205;</span> {{ provider.address }}
+              &middot;
+              <a href="{{ url_for('admin.provider_location', provider_id=provider.id) }}">
+                View map<span class="sr-only"> for {{ provider.business_name }}</span>
+              </a>
+            </div>
+          </td>
+          <td>
+            {{ provider.provider_name }}
+            <div class="hint">{{ provider.email }}<br>{{ provider.phone }}</div>
+          </td>
+          {% if show_service %}<td>{{ provider.service_name }}</td>{% endif %}
+          <td class="num">Rs {{ '%.0f'|format(provider.hourly_rate) }}</td>
+          <td class="num">{{ provider.experience_years }} yr</td>
+          <td class="num">
+            {% if provider.review_count %}
+              {{ '%.1f'|format(provider.avg_rating) }}
+              <div class="hint">{{ provider.review_count }} review{{ 's' if provider.review_count != 1 }}</div>
+            {% else %}
+              &mdash;
+            {% endif %}
+          </td>
+          <td>
+            {% if provider.is_approved %}
+              <span class="badge badge-completed">Approved</span>
+            {% else %}
+              <span class="badge badge-pending">Pending</span>
+            {% endif %}
+            {% if not provider.is_available %}
+              <span class="badge badge-muted">Unavailable</span>
+            {% endif %}
+            {% if not provider.account_active %}
+              <span class="badge badge-rejected">Account off</span>
+            {% endif %}
+          </td>
+          <td>
+            <form method="post" action="{{ url_for('admin.toggle_provider', provider_id=provider.id) }}">
+              <button type="submit" class="btn btn-sm {{ 'btn-outline' if provider.is_approved else 'btn-ok' }}">
+                {{ 'Deactivate' if provider.is_approved else 'Approve' }}
+              </button>
+            </form>
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>

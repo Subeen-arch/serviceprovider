@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}{{ provider.business_name }} location - Admin{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <h1>{{ provider.business_name }}</h1>
+  <p>Where this provider works from. No other provider is shown on this map.</p>
+</div>
+
+<div class="filters">
+  <a href="{{ url_for('admin.providers') }}">&larr; All providers</a>
+  <a href="{{ url_for('admin.providers', status='pending') }}">Waiting for approval</a>
+</div>
+
+<div class="grid grid-2">
+  <div class="card">
+    <div class="card-title">
+      <h2>Shop location</h2>
+      <span class="badge {{ 'badge-completed' if provider.is_approved else 'badge-pending' }}">
+        {{ 'Approved' if provider.is_approved else 'Pending' }}
+      </span>
+    </div>
+
+    <p class="hint tight">
+      <span aria-hidden="true">&#128205;</span> {{ provider.address }}
+    </p>
+
+    {% if galli_token %}
+      <div id="provider-map" class="map-box tall"></div>
+      <div class="map-status">
+        Marker at {{ '%.5f'|format(provider.latitude) }},
+        {{ '%.5f'|format(provider.longitude) }} &mdash; the coordinates this
+        provider saved on their own profile.
+      </div>
+    {% else %}
+      <div class="map-missing">
+        The map is not configured. Add <code>GALLI_ACCESS_TOKEN</code> to your .env file.
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h2>Details</h2>
+    <div class="table-wrap">
+      <table>
+        <tbody>
+          <tr><th>Service</th>
+              <td>{{ provider.service_icon }} {{ provider.service_name }}</td></tr>
+          <tr><th>Owner</th>
+              <td>{{ provider.provider_name }}
+                  <div class="hint">{{ provider.email }}<br>{{ provider.phone }}</div></td></tr>
+          <tr><th>Rate</th><td>Rs {{ '%.0f'|format(provider.hourly_rate) }} / hour</td></tr>
+          <tr><th>Experience</th><td>{{ provider.experience_years }} yr</td></tr>
+          <tr><th>Bookings</th><td>{{ provider.booking_count }}</td></tr>
+          <tr><th>Status</th>
+              <td>
+                <span class="badge {{ 'badge-completed' if provider.is_approved else 'badge-pending' }}">
+                  {{ 'Approved' if provider.is_approved else 'Pending' }}
+                </span>
+                {% if not provider.is_available %}
+                  <span class="badge badge-muted">Unavailable</span>
+                {% endif %}
+                {% if not provider.account_active %}
+                  <span class="badge badge-rejected">Account off</span>
+                {% endif %}
+              </td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    {% if provider.bio %}<p class="hint">{{ provider.bio }}</p>{% endif %}
+
+    <form method="post"
+          action="{{ url_for('admin.toggle_provider', provider_id=provider.id) }}">
+      <button type="submit" class="btn btn-sm {{ 'btn-outline' if provider.is_approved else 'btn-ok' }}">
+        {{ 'Deactivate' if provider.is_approved else 'Approve' }}
+      </button>
+    </form>
+  </div>
+</div>
+
+<div id="pano"></div>
+{% endblock %}
+
+{% block scripts %}
+  {% if galli_token %}
+    <script src="https://gallimap.com/static/dist/js/gallimaps.vector.min.latest.js"></script>
+    <script src="{{ url_for('static', filename='js/galli-map.js') }}"></script>
+    <script>
+      window.initPlaceMap({
+        container: "provider-map",
+        token: {{ galli_token | tojson }},
+        lat: {{ provider.latitude }},
+        lng: {{ provider.longitude }}
+      });
+    </script>
+  {% endif %}
+{% endblock %}
